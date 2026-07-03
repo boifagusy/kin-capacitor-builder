@@ -1,65 +1,106 @@
-name: Build Android APK
+# KIN Capacitor Builder v1.0.1
+# Reusable Android Build Workflow
+
+name: Android Build
 
 on:
-  push:
-    branches: [ main, master ]
-  workflow_dispatch:
+  workflow_call:
+    inputs:
+      node_version:
+        description: 'Node.js version'
+        required: false
+        type: string
+        default: '22'
+      java_version:
+        description: 'Java version'
+        required: false
+        type: string
+        default: '17'
+      build_type:
+        description: 'Build type (debug, release, both)'
+        required: false
+        type: string
+        default: 'debug'
 
 jobs:
   build:
+    name: Build Android
     runs-on: ubuntu-latest
-    
+
     steps:
-    - uses: actions/checkout@v4
-    
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '22'
-        
+        node-version: ${{ inputs.node_version }}
+
     - name: Setup Java
       uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
-        java-version: '21'
-        
+        java-version: ${{ inputs.java_version }}
+
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
-    
-    - name: Build Web
-      working-directory: ./frontend
+
+    - name: Install Dependencies
       run: |
-        npm install --legacy-peer-deps
-        npm run build
-        
-    - name: Full Capacitor Sync
-      working-directory: ./frontend
+        if [ -f "package.json" ]; then
+          npm install --legacy-peer-deps
+        elif [ -f "frontend/package.json" ]; then
+          cd frontend
+          npm install --legacy-peer-deps
+        else
+          echo "No package.json found!"
+          exit 1
+        fi
+
+    - name: Build Web Assets
       run: |
-        # Remove old Android folder to ensure clean sync
-        rm -rf android
-        npx cap add android
-        npx cap sync android
-        
-    - name: Create string resources
+        if [ -f "package.json" ]; then
+          npm run build
+        elif [ -f "frontend/package.json" ]; then
+          cd frontend
+          npm run build
+        else
+          echo "No package.json found!"
+          exit 1
+        fi
+
+    - name: Sync Capacitor
       run: |
-        mkdir -p frontend/android/app/src/main/res/values
-        cat > frontend/android/app/src/main/res/values/strings.xml << 'STRINGS'
-        <?xml version="1.0" encoding="utf-8"?>
-        <resources>
-            <string name="app_name">Kin</string>
-            <string name="title_activity_main">Kin</string>
-            <string name="default_notification_channel_id">kin_notifications</string>
-        </resources>
-        STRINGS
-        
+        if [ -f "capacitor.config.json" ]; then
+          npx cap sync android
+        elif [ -f "frontend/capacitor.config.json" ]; then
+          cd frontend
+          npx cap sync android
+        else
+          echo "No capacitor.config.json found!"
+          exit 1
+        fi
+
     - name: Build APK
-      working-directory: ./frontend/android
       run: |
-        chmod +x gradlew
-        ./gradlew assembleDebug --no-daemon --stacktrace
-        
+        if [ -d "android" ]; then
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+        elif [ -d "frontend/android" ]; then
+          cd frontend/android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+        else
+          echo "No android directory found!"
+          exit 1
+        fi
+
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: kin-app-debug
-        path: frontend/android/app/build/outputs/apk/debug/app-debug.apk
+        name: app-debug
+        path: |
+          android/app/build/outputs/apk/debug/*.apk
+          frontend/android/app/build/outputs/apk/debug/*.apk
+        retention-days: 30
