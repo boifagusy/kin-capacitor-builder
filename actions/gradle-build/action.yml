@@ -1,0 +1,67 @@
+name: Gradle Build
+description: Build Android APK/AAB with Gradle
+
+inputs:
+  build_type:
+    description: 'Build type (debug, release, both)'
+    required: false
+    default: 'both'
+  signing:
+    description: 'Enable signing'
+    required: false
+    default: 'false'
+  gradle_task:
+    description: 'Custom gradle task'
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Decode Keystore
+      if: inputs.signing == 'true'
+      run: |
+        echo "$ANDROID_KEYSTORE" | base64 -d > keystore.jks
+      env:
+        ANDROID_KEYSTORE: ${{ env.ANDROID_KEYSTORE }}
+      shell: bash
+
+    - name: Build Debug APK
+      if: inputs.build_type == 'debug' || inputs.build_type == 'both'
+      run: |
+        cd android
+        chmod +x gradlew
+        ./gradlew assembleDebug
+      shell: bash
+
+    - name: Build Release APK
+      if: inputs.build_type == 'release' || inputs.build_type == 'both'
+      run: |
+        cd android
+        chmod +x gradlew
+        if [ "${{ inputs.signing }}" == "true" ]; then
+          ./gradlew assembleRelease \
+            -Pandroid.injected.signing.store.file=${{ github.workspace }}/keystore.jks \
+            -Pandroid.injected.signing.store.password=${{ env.ANDROID_KEYSTORE_PASSWORD }} \
+            -Pandroid.injected.signing.key.alias=${{ env.ANDROID_KEY_ALIAS }} \
+            -Pandroid.injected.signing.key.password=${{ env.ANDROID_KEY_PASSWORD }}
+        else
+          ./gradlew assembleRelease
+        fi
+      shell: bash
+
+    - name: Build Android App Bundle
+      if: inputs.build_type == 'release' || inputs.build_type == 'both'
+      run: |
+        cd android
+        chmod +x gradlew
+        ./gradlew bundleRelease
+      shell: bash
+
+    - name: Run Custom Gradle Task
+      if: inputs.gradle_task != ''
+      run: |
+        cd android
+        chmod +x gradlew
+        ./gradlew ${{ inputs.gradle_task }}
+      shell: bash

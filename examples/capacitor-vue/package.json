@@ -1,0 +1,13 @@
+{
+  "name": "capacitor-vue-example",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
+    "vue": "^3.4.0"
+  },
+  "scripts": {
+    "build": "vite build"
+  }
+}

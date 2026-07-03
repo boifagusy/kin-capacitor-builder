@@ -1,0 +1,114 @@
+# KIN Capacitor Builder v1.0
+# Reusable Android Build Workflow
+# Purpose: Build any Capacitor Android project with minimal config
+
+name: Android Build
+
+on:
+  workflow_call:
+    inputs:
+      node_version:
+        description: 'Node.js version'
+        required: false
+        type: string
+        default: '22'
+      java_version:
+        description: 'Java version'
+        required: false
+        type: string
+        default: '17'
+      build_type:
+        description: 'Build type (debug, release, both)'
+        required: false
+        type: string
+        default: 'both'
+      signing:
+        description: 'Enable signing (true/false)'
+        required: false
+        type: string
+        default: 'false'
+      gradle_task:
+        description: 'Custom gradle task'
+        required: false
+        type: string
+        default: ''
+      release:
+        description: 'Create GitHub Release'
+        required: false
+        type: string
+        default: 'false'
+      artifact_retention_days:
+        description: 'Artifact retention days'
+        required: false
+        type: number
+        default: 30
+
+    secrets:
+      GITHUB_TOKEN:
+        required: false
+      ANDROID_KEYSTORE:
+        required: false
+      ANDROID_KEYSTORE_PASSWORD:
+        required: false
+      ANDROID_KEY_ALIAS:
+        required: false
+      ANDROID_KEY_PASSWORD:
+        required: false
+
+jobs:
+  build:
+    name: Build Android APK/AAB
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: ./actions/setup-node
+      with:
+        node_version: ${{ inputs.node_version }}
+
+    - name: Setup Java
+      uses: ./actions/setup-java
+      with:
+        java_version: ${{ inputs.java_version }}
+
+    - name: Capacitor Sync
+      uses: ./actions/capacitor-sync
+
+    - name: Build Android
+      uses: ./actions/gradle-build
+      with:
+        build_type: ${{ inputs.build_type }}
+        signing: ${{ inputs.signing }}
+        gradle_task: ${{ inputs.gradle_task }}
+      env:
+        ANDROID_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
+        ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: android-build
+        path: |
+          android/app/build/outputs/apk/debug/*.apk
+          android/app/build/outputs/apk/release/*.apk
+          android/app/build/outputs/bundle/debug/*.aab
+          android/app/build/outputs/bundle/release/*.aab
+          android/app/build/outputs/mapping/*/mapping.txt
+          android/app/build/outputs/logs/*.log
+        retention-days: ${{ inputs.artifact_retention_days }}
+
+    - name: Create GitHub Release
+      if: inputs.release == 'true' && startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          android/app/build/outputs/apk/release/*.apk
+          android/app/build/outputs/bundle/release/*.aab
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

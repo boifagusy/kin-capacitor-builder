@@ -1,0 +1,20 @@
+name: Setup Java
+description: Setup Java for Android build
+
+inputs:
+  java_version:
+    description: 'Java version'
+    required: false
+    default: '17'
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: ${{ inputs.java_version }}
+
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
