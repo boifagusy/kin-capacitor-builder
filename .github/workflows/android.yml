@@ -1,5 +1,8 @@
 # KIN Capacitor Builder v1.0.6
-# Reusable Android Build Workflow — Configurable Icon Modes
+# Production-grade reusable Android build workflow
+# Supports: resources, native, custom icon modes
+# Supports: Debug and Release builds
+# Auto-detects project structure
 
 name: Android Build
 
@@ -15,6 +18,7 @@ on:
         type: string
         default: '17'
       build_type:
+        description: 'Build type: debug, release, both'
         required: false
         type: string
         default: 'debug'
@@ -28,13 +32,21 @@ on:
         required: false
         type: string
         default: 'branding/icons'
+      generate_assets:
+        description: 'Generate assets from resources/ (requires @capacitor/assets)'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      build_summary: ${{ steps.summary.outputs.summary }}
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout
+      uses: actions/checkout@v4
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
@@ -50,115 +62,153 @@ jobs:
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
 
-    - name: Verify Icon Mode
+    - name: Detect Project Structure
+      id: detect
       run: |
-        echo "📋 Icon Mode: ${{ inputs.icon_mode }}"
-        echo "📁 Icon Source: ${{ inputs.icon_source }}"
+        if [ -f "frontend/package.json" ]; then
+          echo "APP_DIR=frontend" >> $GITHUB_ENV
+          echo "PROJECT_TYPE=frontend" >> $GITHUB_ENV
+        else
+          echo "APP_DIR=." >> $GITHUB_ENV
+          echo "PROJECT_TYPE=root" >> $GITHUB_ENV
+        fi
+        echo "📁 Project structure detected: ${{ env.APP_DIR }}"
 
     - name: Install Dependencies
-      run: |
-        if [ -f "frontend/package.json" ]; then
-          cd frontend && npm install --legacy-peer-deps
-        else
-          npm install --legacy-peer-deps
-        fi
+      working-directory: ${{ env.APP_DIR }}
+      run: npm install --legacy-peer-deps
 
     - name: Build Web
-      run: |
-        if [ -f "frontend/package.json" ]; then
-          cd frontend && npm run build
-        else
-          npm run build
-        fi
+      working-directory: ${{ env.APP_DIR }}
+      run: npm run build
 
-    - name: Handle Icons (resources mode)
-      if: inputs.icon_mode == 'resources'
+    - name: Icon Mode - resources
+      if: inputs.icon_mode == 'resources' && inputs.generate_assets == 'true'
+      working-directory: ${{ env.APP_DIR }}
       run: |
         echo "🔧 Generating icons from resources/icon.png"
-        if [ -f "frontend/resources/icon.png" ] || [ -f "resources/icon.png" ]; then
-          echo "✅ resources/icon.png found"
-          npx capacitor-assets generate --android 2>/dev/null || echo "⚠️ capacitor-assets not available, skipping generation"
+        if npm ls @capacitor/assets >/dev/null 2>&1; then
+          npx @capacitor/assets generate --android
+          echo "✅ Icons generated from resources/"
         else
-          echo "⚠️ resources/icon.png not found, using defaults"
+          echo "⚠️ @capacitor/assets not installed. Skipping generation."
         fi
 
-    - name: Handle Icons (native mode)
+    - name: Icon Mode - native (Backup)
       if: inputs.icon_mode == 'native'
       run: |
-        echo "🔧 Preserving native icons"
-        # Backup existing mipmap files before sync
-        if [ -d "frontend/android/app/src/main/res/mipmap-hdpi" ]; then
-          cp -r frontend/android/app/src/main/res/mipmap-* /tmp/mipmap-backup/ 2>/dev/null || true
+        echo "🔧 Backing up native icons..."
+        mkdir -p /tmp/mipmap-backup
+        if [ -d "${{ env.APP_DIR }}/android/app/src/main/res/mipmap-*" ]; then
+          cp -r ${{ env.APP_DIR }}/android/app/src/main/res/mipmap-* /tmp/mipmap-backup/ 2>/dev/null || true
           echo "✅ Native icons backed up"
-        elif [ -d "android/app/src/main/res/mipmap-hdpi" ]; then
-          cp -r android/app/src/main/res/mipmap-* /tmp/mipmap-backup/ 2>/dev/null || true
-          echo "✅ Native icons backed up"
+        else
+          echo "⚠️ No native icons found"
         fi
 
     - name: Sync Capacitor
-      run: |
-        echo "🔧 Syncing Capacitor..."
-        if [ -f "frontend/capacitor.config.json" ]; then
-          cd frontend && npx cap sync android
-        else
-          npx cap sync android
-        fi
+      working-directory: ${{ env.APP_DIR }}
+      run: npx cap sync android
 
-    - name: Restore Native Icons (native mode)
+    - name: Icon Mode - native (Restore)
       if: inputs.icon_mode == 'native'
       run: |
         echo "🔧 Restoring native icons..."
-        if [ -d "/tmp/mipmap-backup" ]; then
-          if [ -d "frontend/android/app/src/main/res" ]; then
-            cp -r /tmp/mipmap-backup/* frontend/android/app/src/main/res/ 2>/dev/null || true
-          elif [ -d "android/app/src/main/res" ]; then
-            cp -r /tmp/mipmap-backup/* android/app/src/main/res/ 2>/dev/null || true
-          fi
+        if [ -d "/tmp/mipmap-backup" ] && [ "$(ls -A /tmp/mipmap-backup)" ]; then
+          cp -r /tmp/mipmap-backup/* ${{ env.APP_DIR }}/android/app/src/main/res/ 2>/dev/null || true
           echo "✅ Native icons restored"
+        else
+          echo "⚠️ No backup found to restore"
         fi
 
-    - name: Copy Custom Icons (custom mode)
+    - name: Icon Mode - custom
       if: inputs.icon_mode == 'custom'
       run: |
         echo "🔧 Copying custom icons from ${{ inputs.icon_source }}"
         if [ -d "${{ inputs.icon_source }}" ]; then
-          echo "✅ Source found: ${{ inputs.icon_source }}"
-          if [ -d "frontend/android/app/src/main/res" ]; then
-            cp -r ${{ inputs.icon_source }}/* frontend/android/app/src/main/res/mipmap-*/ 2>/dev/null || true
-          elif [ -d "android/app/src/main/res" ]; then
-            cp -r ${{ inputs.icon_source }}/* android/app/src/main/res/mipmap-*/ 2>/dev/null || true
-          fi
+          cp -r ${{ inputs.icon_source }}/* ${{ env.APP_DIR }}/android/app/src/main/res/ 2>/dev/null || true
           echo "✅ Custom icons copied"
         else
           echo "⚠️ Source not found: ${{ inputs.icon_source }}"
         fi
 
-    - name: Verify Icons
+    - name: Verify Icons (Hash Report)
+      id: verify-icons
       run: |
-        echo "🔍 Verifying icons..."
-        if [ -d "frontend/android/app/src/main/res" ]; then
-          ls -la frontend/android/app/src/main/res/mipmap-*/ic_launcher.png 2>/dev/null || echo "⚠️ No icons found"
-        elif [ -d "android/app/src/main/res" ]; then
-          ls -la android/app/src/main/res/mipmap-*/ic_launcher.png 2>/dev/null || echo "⚠️ No icons found"
-        fi
+        echo "🔍 Icon Verification Report"
+        echo "─────────────────────────────"
+        echo "Mode: ${{ inputs.icon_mode }}"
+        echo "Build Type: ${{ inputs.build_type }}"
+        echo ""
+        echo "┌──────────┬────────────┬──────────────────────────────────┐"
+        echo "│ Density  │ Size       │ SHA256 Hash                     │"
+        echo "├──────────┼────────────┼──────────────────────────────────┤"
+        
+        for density in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+          FILE="${{ env.APP_DIR }}/android/app/src/main/res/mipmap-${density}/ic_launcher.png"
+          if [ -f "$FILE" ]; then
+            SIZE=$(stat -c%s "$FILE" 2>/dev/null || echo "N/A")
+            HASH=$(sha256sum "$FILE" 2>/dev/null | awk '{print $1}')
+            printf "│ %-8s │ %-10s │ %.32s... │\n" "${density}" "${SIZE}" "${HASH}"
+          else
+            printf "│ %-8s │ %-10s │ %-32s │\n" "${density}" "MISSING" "⚠️ File not found"
+          fi
+        done
+        echo "└──────────┴────────────┴──────────────────────────────────┘"
 
-    - name: Build Debug APK
+    - name: Build APK
+      working-directory: ${{ env.APP_DIR }}/android
       run: |
-        if [ -d "frontend/android" ]; then
-          cd frontend/android
-          chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
-        elif [ -d "android" ]; then
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
-        fi
+        chmod +x gradlew
+        case "${{ inputs.build_type }}" in
+          debug)
+            echo "🔧 Building Debug APK..."
+            ./gradlew assembleDebug --no-daemon
+            ;;
+          release)
+            echo "🔧 Building Release APK..."
+            ./gradlew assembleRelease --no-daemon
+            ;;
+          both)
+            echo "🔧 Building Debug and Release APKs..."
+            ./gradlew assembleDebug --no-daemon
+            ./gradlew assembleRelease --no-daemon
+            ;;
+          *)
+            echo "⚠️ Unknown build type, building Debug..."
+            ./gradlew assembleDebug --no-daemon
+            ;;
+        esac
+
+    - name: Build Summary
+      id: summary
+      run: |
+        SUMMARY=$(cat << 'EOF'
+        ✅ Android Build Complete
+        
+        📋 Summary
+        ─────────────────────────────
+        Project:    ${{ github.repository }}
+        Commit:     ${{ github.sha }}
+        Build Type: ${{ inputs.build_type }}
+        Icon Mode:  ${{ inputs.icon_mode }}
+        
+        📱 APK Status
+        ─────────────────────────────
+        ${{ env.APP_DIR }}/android/app/build/outputs/apk/*/
+        EOF
+        )
+        echo "summary<<EOF" >> $GITHUB_OUTPUT
+        echo "$SUMMARY" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: app-debug
+        name: app-${{ inputs.build_type }}
         path: |
           android/app/build/outputs/apk/debug/*.apk
           frontend/android/app/build/outputs/apk/debug/*.apk
+          android/app/build/outputs/apk/release/*.apk
+          frontend/android/app/build/outputs/apk/release/*.apk
         retention-days: 30
