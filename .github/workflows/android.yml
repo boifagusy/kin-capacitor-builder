@@ -1,5 +1,5 @@
-# KIN Capacitor Builder v1.0.5
-# Auto-detect and preserve custom icons
+# KIN Capacitor Builder v1.0.6
+# Reusable Android Build Workflow — Configurable Icon Modes
 
 name: Android Build
 
@@ -18,6 +18,16 @@ on:
         required: false
         type: string
         default: 'debug'
+      icon_mode:
+        description: 'Icon handling: resources, native, custom'
+        required: false
+        type: string
+        default: 'resources'
+      icon_source:
+        description: 'Path to custom icon source (for custom mode)'
+        required: false
+        type: string
+        default: 'branding/icons'
 
 jobs:
   build:
@@ -40,70 +50,106 @@ jobs:
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
 
+    - name: Verify Icon Mode
+      run: |
+        echo "📋 Icon Mode: ${{ inputs.icon_mode }}"
+        echo "📁 Icon Source: ${{ inputs.icon_source }}"
+
     - name: Install Dependencies
       run: |
-        if [ -f "package.json" ]; then
-          npm install --legacy-peer-deps
-        elif [ -f "frontend/package.json" ]; then
-          cd frontend
+        if [ -f "frontend/package.json" ]; then
+          cd frontend && npm install --legacy-peer-deps
+        else
           npm install --legacy-peer-deps
         fi
 
     - name: Build Web
       run: |
-        if [ -f "package.json" ]; then
+        if [ -f "frontend/package.json" ]; then
+          cd frontend && npm run build
+        else
           npm run build
-        elif [ -f "frontend/package.json" ]; then
-          cd frontend
-          npm run build
+        fi
+
+    - name: Handle Icons (resources mode)
+      if: inputs.icon_mode == 'resources'
+      run: |
+        echo "🔧 Generating icons from resources/icon.png"
+        if [ -f "frontend/resources/icon.png" ] || [ -f "resources/icon.png" ]; then
+          echo "✅ resources/icon.png found"
+          npx capacitor-assets generate --android 2>/dev/null || echo "⚠️ capacitor-assets not available, skipping generation"
+        else
+          echo "⚠️ resources/icon.png not found, using defaults"
+        fi
+
+    - name: Handle Icons (native mode)
+      if: inputs.icon_mode == 'native'
+      run: |
+        echo "🔧 Preserving native icons"
+        # Backup existing mipmap files before sync
+        if [ -d "frontend/android/app/src/main/res/mipmap-hdpi" ]; then
+          cp -r frontend/android/app/src/main/res/mipmap-* /tmp/mipmap-backup/ 2>/dev/null || true
+          echo "✅ Native icons backed up"
+        elif [ -d "android/app/src/main/res/mipmap-hdpi" ]; then
+          cp -r android/app/src/main/res/mipmap-* /tmp/mipmap-backup/ 2>/dev/null || true
+          echo "✅ Native icons backed up"
         fi
 
     - name: Sync Capacitor
       run: |
-        if [ -f "capacitor.config.json" ]; then
-          npx cap sync android
-        elif [ -f "frontend/capacitor.config.json" ]; then
-          cd frontend
+        echo "🔧 Syncing Capacitor..."
+        if [ -f "frontend/capacitor.config.json" ]; then
+          cd frontend && npx cap sync android
+        else
           npx cap sync android
         fi
 
-    - name: Detect and Preserve Icons
+    - name: Restore Native Icons (native mode)
+      if: inputs.icon_mode == 'native'
       run: |
-        echo "🔍 Detecting icons..."
-        
-        # Check multiple possible icon locations
-        ICON_PATHS=(
-          "frontend/android/app/src/main/res/mipmap-hdpi/ic_launcher.png"
-          "android/app/src/main/res/mipmap-hdpi/ic_launcher.png"
-          "frontend/resources/icon.png"
-          "resources/icon.png"
-        )
-        
-        ICON_FOUND="false"
-        for path in "${ICON_PATHS[@]}"; do
-          if [ -f "$path" ]; then
-            echo "✅ Found icon: $path"
-            ICON_FOUND="true"
-            break
+        echo "🔧 Restoring native icons..."
+        if [ -d "/tmp/mipmap-backup" ]; then
+          if [ -d "frontend/android/app/src/main/res" ]; then
+            cp -r /tmp/mipmap-backup/* frontend/android/app/src/main/res/ 2>/dev/null || true
+          elif [ -d "android/app/src/main/res" ]; then
+            cp -r /tmp/mipmap-backup/* android/app/src/main/res/ 2>/dev/null || true
           fi
-        done
-        
-        if [ "$ICON_FOUND" = "false" ]; then
-          echo "⚠️ No custom icon found - using default Capacitor icon"
+          echo "✅ Native icons restored"
+        fi
+
+    - name: Copy Custom Icons (custom mode)
+      if: inputs.icon_mode == 'custom'
+      run: |
+        echo "🔧 Copying custom icons from ${{ inputs.icon_source }}"
+        if [ -d "${{ inputs.icon_source }}" ]; then
+          echo "✅ Source found: ${{ inputs.icon_source }}"
+          if [ -d "frontend/android/app/src/main/res" ]; then
+            cp -r ${{ inputs.icon_source }}/* frontend/android/app/src/main/res/mipmap-*/ 2>/dev/null || true
+          elif [ -d "android/app/src/main/res" ]; then
+            cp -r ${{ inputs.icon_source }}/* android/app/src/main/res/mipmap-*/ 2>/dev/null || true
+          fi
+          echo "✅ Custom icons copied"
         else
-          echo "✅ Custom icons will be used"
-          # Copy to all mipmap folders if they don't exist
-          find . -name "ic_launcher.png" -path "*/mipmap-*/*" | head -1
+          echo "⚠️ Source not found: ${{ inputs.icon_source }}"
+        fi
+
+    - name: Verify Icons
+      run: |
+        echo "🔍 Verifying icons..."
+        if [ -d "frontend/android/app/src/main/res" ]; then
+          ls -la frontend/android/app/src/main/res/mipmap-*/ic_launcher.png 2>/dev/null || echo "⚠️ No icons found"
+        elif [ -d "android/app/src/main/res" ]; then
+          ls -la android/app/src/main/res/mipmap-*/ic_launcher.png 2>/dev/null || echo "⚠️ No icons found"
         fi
 
     - name: Build Debug APK
       run: |
-        if [ -d "android" ]; then
-          cd android
+        if [ -d "frontend/android" ]; then
+          cd frontend/android
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
-        elif [ -d "frontend/android" ]; then
-          cd frontend/android
+        elif [ -d "android" ]; then
+          cd android
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
         fi
