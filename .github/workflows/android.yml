@@ -1,5 +1,5 @@
-# KIN Capacitor Builder v1.0.1
-# Reusable Android Build Workflow
+# KIN Capacitor Builder v1.0.3
+# Reusable Android Build Workflow (No asset generation)
 
 name: Android Build
 
@@ -7,29 +7,24 @@ on:
   workflow_call:
     inputs:
       node_version:
-        description: 'Node.js version'
         required: false
         type: string
         default: '22'
       java_version:
-        description: 'Java version'
         required: false
         type: string
         default: '17'
       build_type:
-        description: 'Build type (debug, release, both)'
         required: false
         type: string
         default: 'debug'
 
 jobs:
   build:
-    name: Build Android
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
@@ -52,21 +47,15 @@ jobs:
         elif [ -f "frontend/package.json" ]; then
           cd frontend
           npm install --legacy-peer-deps
-        else
-          echo "No package.json found!"
-          exit 1
         fi
 
-    - name: Build Web Assets
+    - name: Build Web
       run: |
         if [ -f "package.json" ]; then
           npm run build
         elif [ -f "frontend/package.json" ]; then
           cd frontend
           npm run build
-        else
-          echo "No package.json found!"
-          exit 1
         fi
 
     - name: Sync Capacitor
@@ -76,12 +65,9 @@ jobs:
         elif [ -f "frontend/capacitor.config.json" ]; then
           cd frontend
           npx cap sync android
-        else
-          echo "No capacitor.config.json found!"
-          exit 1
         fi
 
-    - name: Build APK
+    - name: Build Debug APK
       run: |
         if [ -d "android" ]; then
           cd android
@@ -91,9 +77,6 @@ jobs:
           cd frontend/android
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
-        else
-          echo "No android directory found!"
-          exit 1
         fi
 
     - name: Upload APK
