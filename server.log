@@ -1,0 +1,21 @@
+2026/08/25 03:51:39 Database initialized at: /data/data/com.termux/files/home/.local-apk-builder/builder.db
+2026/08/25 03:51:39 Starting server on 127.0.0.1:8080
+2026/08/25 03:51:39 Server URL: http://127.0.0.1:8080
+2026/08/25 03:51:54 GET / 302 2.009231ms
+2026/08/25 03:51:54 GET /wizard/2 200 2.147616ms
+2026/08/25 03:51:54 GET /static/vendor/htmx.min.js 200 1.341307ms
+2026/08/25 03:51:54 GET /static/css/main.css 200 704.923µs
+2026/08/25 03:51:54 GET /static/vendor/alpine.min.js 200 1.240923ms
+2026/08/25 03:51:54 GET /static/js/wizard.js 200 250.385µs
+2026/08/25 03:52:00 GET /wizard/1 200 1.298384ms
+2026/08/25 03:52:04 POST /wizard/1 200 11.977615ms
+2026/08/25 03:52:04 GET /wizard/2 200 1.580385ms
+2026/08/25 03:52:04 GET /static/vendor/htmx.min.js 200 941µs
+2026/08/25 03:52:04 GET /static/css/main.css 200 747.154µs
+2026/08/25 03:52:04 GET /static/vendor/alpine.min.js 200 596.076µs
+2026/08/25 03:52:04 GET /static/js/wizard.js 200 123.384µs
+2026/08/25 03:52:42 POST /wizard/2 200 7.266462ms
+2026/08/25 04:07:07 GET /wizard/2 200 82.381ms
+2026/08/25 04:07:08 GET /favicon.ico 404 496.923µs
+2026/08/25 04:07:11 GET /wizard/1 200 1.980923ms
+2026/08/25 04:23:02 GET /favicon.ico 404 1.183462ms

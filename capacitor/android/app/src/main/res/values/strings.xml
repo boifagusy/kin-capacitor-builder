@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Local APK Builder</string>
+    <string name="title_activity_main">Local APK Builder</string>
+    <string name="package_name">com.localapkbuilder</string>
+    <string name="custom_url_scheme">com.localapkbuilder</string>
+</resources>

@@ -1,0 +1,33 @@
+{{define "screen1"}}
+<div class="step-enter">
+    <h2 class="screen-title">Website URL</h2>
+    <p class="screen-description">Enter your website to convert to an app</p>
+    
+    <form hx-post="/wizard/1" hx-target="#wizard-content" hx-swap="innerHTML" style="flex:1;display:flex;flex-direction:column;">
+        <div class="form-group">
+            <label for="url" class="form-label">URL</label>
+            <input type="url" 
+                   id="url" 
+                   name="url" 
+                   value="{{.Project.URL}}"
+                   placeholder="example.com"
+                   class="form-input"
+                   required
+                   hx-post="/api/validate-url"
+                   hx-target="#url-validation"
+                   hx-trigger="blur, changed delay:500ms"
+                   inputmode="url"
+                   autocapitalize="off"
+                   autocomplete="url">
+            <div id="url-validation"></div>
+            <p class="form-hint">https:// will be added automatically</p>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                Continue →
+            </button>
+        </div>
+    </form>
+</div>
+{{end}}

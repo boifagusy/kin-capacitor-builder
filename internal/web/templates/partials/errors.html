@@ -1,0 +1,55 @@
+{{define "url_error"}}
+<div class="validation-message validation-error">
+    <span>❌</span>
+    <div>
+        <strong>Invalid URL</strong>
+        <p>{{.Error}}</p>
+    </div>
+</div>
+{{end}}
+
+{{define "url_success"}}
+<div class="validation-message validation-success">
+    <span>✅</span>
+    <div>
+        <strong>Valid URL</strong>
+    </div>
+</div>
+{{end}}
+
+{{define "app_name_error"}}
+<div class="validation-message validation-error">
+    <span>❌</span>
+    <div>
+        <strong>Invalid App Name</strong>
+        <p>{{.Error}}</p>
+    </div>
+</div>
+{{end}}
+
+{{define "color_error"}}
+<div class="validation-message validation-error">
+    <span>❌</span>
+    <div>
+        <strong>Invalid Color</strong>
+        <p>{{.Error}}</p>
+    </div>
+</div>
+{{end}}
+
+{{define "branding_success"}}
+<div class="success-card step-enter">
+    <div class="success-icon">✓</div>
+    <h2 class="success-title">Branding Saved!</h2>
+    <p class="success-message">Your app branding has been saved successfully.</p>
+    
+    <div class="preview-card">
+        <div class="preview-logo" style="background-color: {{.Project.PrimaryColor}};">
+            {{if .Project.AppName}}{{slice .Project.AppName 0 1}}{{else}}📱{{end}}
+        </div>
+        <div class="preview-name">{{.Project.AppName}}</div>
+    </div>
+    
+    <p class="form-hint" style="margin-top: 1.5rem;">Screen 3 will be available in Sprint 2.</p>
+</div>
+{{end}}

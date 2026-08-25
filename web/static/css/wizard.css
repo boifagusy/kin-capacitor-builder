@@ -1,0 +1,75 @@
+/* Wizard-specific styles */
+#wizard-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.progress-step {
+    transition: all 0.3s ease;
+}
+
+.progress-step.active {
+    transform: scale(1.05);
+}
+
+.htmx-request .spinner {
+    display: inline-block;
+}
+
+.spinner {
+    display: none;
+}
+
+.htmx-indicator {
+    display: none;
+}
+
+.htmx-request .htmx-indicator {
+    display: inline-block;
+}
+
+.htmx-request.htmx-indicator {
+    display: inline-block;
+}
+
+/* Form input focus states */
+input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+/* Color preview animation */
+#color-preview {
+    transition: background-color 0.3s ease;
+}
+
+/* Button transitions */
+button {
+    transition: all 0.2s ease;
+}
+
+button:active {
+    transform: scale(0.98);
+}
+
+/* Error and success messages */
+.htmx-swapping {
+    opacity: 0.5;
+    transition: opacity 0.2s ease;
+}
+
+.htmx-added {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

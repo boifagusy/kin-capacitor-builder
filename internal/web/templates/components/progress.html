@@ -1,0 +1,24 @@
+{{define "progress"}}
+<div class="progress-section">
+    <div class="progress-steps">
+        <div class="progress-step">
+            <div class="step-circle {{if ge .Step 1}}active{{end}}">
+                {{if gt .Step 1}}✓{{else}}1{{end}}
+            </div>
+            <span class="step-label {{if ge .Step 1}}active{{end}}">URL</span>
+        </div>
+        <div class="progress-line {{if ge .Step 2}}completed{{end}}"></div>
+        <div class="progress-step">
+            <div class="step-circle {{if ge .Step 2}}active{{end}}">
+                {{if gt .Step 2}}✓{{else}}2{{end}}
+            </div>
+            <span class="step-label {{if ge .Step 2}}active{{end}}">Branding</span>
+        </div>
+        <div class="progress-line"></div>
+        <div class="progress-step">
+            <div class="step-circle">3</div>
+            <span class="step-label">Features</span>
+        </div>
+    </div>
+</div>
+{{end}}

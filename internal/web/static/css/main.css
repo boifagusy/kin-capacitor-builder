@@ -1,0 +1,538 @@
+:root {
+    --primary: #6366f1;
+    --primary-dark: #4f46e5;
+    --primary-light: #818cf8;
+    --success: #10b981;
+    --error: #ef4444;
+    --gray-50: #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-300: #d1d5db;
+    --gray-400: #9ca3af;
+    --gray-500: #6b7280;
+    --gray-600: #4b5563;
+    --gray-700: #374151;
+    --gray-800: #1f2937;
+    --gray-900: #111827;
+    --shadow: 0 2px 8px rgb(0 0 0 / 0.08);
+    --shadow-lg: 0 10px 25px rgb(0 0 0 / 0.12);
+    --rounded: 1rem;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+    height: 100%;
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: #f5f5f7;
+    color: var(--gray-900);
+    line-height: 1.4;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* Header - compact */
+.app-header {
+    background: white;
+    border-bottom: 1px solid var(--gray-200);
+    padding: 0.5rem 1rem;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    max-width: 600px;
+    width: 100%;
+}
+
+.app-icon {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, var(--primary), #8b5cf6);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+}
+
+.app-title {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.app-subtitle {
+    display: none;
+}
+
+/* Main container - full height, no scroll */
+.main-container {
+    height: calc(100vh - 56px);
+    height: calc(100dvh - 56px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem;
+}
+
+.wizard-container {
+    background: white;
+    border-radius: var(--rounded);
+    box-shadow: var(--shadow-lg);
+    width: 100%;
+    max-width: 600px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Progress - compact */
+.progress-section {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--gray-100);
+    flex-shrink: 0;
+}
+
+.progress-steps {
+    display: flex;
+    align-items: center;
+}
+
+.progress-step {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.step-circle {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.75rem;
+    background: var(--gray-200);
+    color: var(--gray-500);
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+}
+
+.step-circle.active {
+    background: var(--primary);
+    color: white;
+}
+
+.step-circle.completed {
+    background: var(--success);
+    color: white;
+}
+
+.step-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--gray-500);
+    white-space: nowrap;
+}
+
+.step-label.active {
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.progress-line {
+    flex: 1;
+    height: 2px;
+    background: var(--gray-200);
+    margin: 0 0.5rem;
+}
+
+.progress-line.completed {
+    background: var(--success);
+}
+
+/* Wizard content - fills remaining space */
+.wizard-content {
+    flex: 1;
+    padding: 1rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.screen-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.screen-description {
+    color: var(--gray-500);
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+}
+
+/* Form - compact */
+.form-group {
+    margin-bottom: 0.75rem;
+}
+
+.form-label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--gray-700);
+    margin-bottom: 0.25rem;
+}
+
+.form-input {
+    width: 100%;
+    padding: 0.625rem 0.875rem;
+    border: 1.5px solid var(--gray-200);
+    border-radius: 0.625rem;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    background: var(--gray-50);
+    outline: none;
+}
+
+.form-input:focus {
+    border-color: var(--primary);
+    background: white;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.form-hint {
+    font-size: 0.7rem;
+    color: var(--gray-400);
+    margin-top: 0.25rem;
+}
+
+/* Buttons */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.625rem 1.25rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border-radius: 0.625rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 44px;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: white;
+    flex: 1;
+}
+
+.btn-primary:active {
+    background: var(--primary-dark);
+    transform: scale(0.98);
+}
+
+.btn-secondary {
+    background: var(--gray-100);
+    color: var(--gray-700);
+    min-width: 80px;
+}
+
+.btn-secondary:active {
+    background: var(--gray-200);
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* Form actions - fixed at bottom */
+.form-actions {
+    display: flex;
+    gap: 0.625rem;
+    margin-top: auto;
+    padding-top: 0.75rem;
+    flex-shrink: 0;
+}
+
+/* Validation */
+.validation-message {
+    margin-top: 0.375rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    font-size: 0.8rem;
+}
+
+.validation-error {
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+}
+
+.validation-success {
+    background: #f0fdf4;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+}
+
+/* Color picker */
+.color-picker-group {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+}
+
+.color-input-native {
+    width: 40px;
+    height: 40px;
+    border: 1.5px solid var(--gray-200);
+    border-radius: 0.5rem;
+    cursor: pointer;
+    padding: 0;
+    background: white;
+    flex-shrink: 0;
+}
+
+.color-input-text {
+    flex: 1;
+    padding: 0.625rem 0.875rem;
+    border: 1.5px solid var(--gray-200);
+    border-radius: 0.625rem;
+    font-size: 0.85rem;
+    font-family: monospace;
+    outline: none;
+}
+
+.color-input-text:focus {
+    border-color: var(--primary);
+}
+
+.color-preview {
+    width: 40px;
+    height: 40px;
+    border-radius: 0.5rem;
+    border: 1.5px solid var(--gray-200);
+    flex-shrink: 0;
+    transition: background-color 0.3s ease;
+}
+
+/* Color swatches */
+.color-swatches {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.color-swatch {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.color-swatch:active {
+    transform: scale(1.15);
+}
+
+.color-swatch.selected {
+    border-color: var(--gray-700);
+}
+
+/* Logo upload */
+.logo-upload-area {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.logo-preview {
+    width: 56px;
+    height: 56px;
+    border-radius: 0.75rem;
+    background: var(--gray-100);
+    border: 2px dashed var(--gray-300);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    overflow: hidden;
+    position: relative;
+}
+
+.logo-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.logo-preview-placeholder {
+    font-size: 1.5rem;
+    color: var(--gray-400);
+}
+
+.logo-upload-btn {
+    flex: 1;
+    padding: 0.625rem 1rem;
+    background: var(--gray-100);
+    border: 1.5px dashed var(--gray-300);
+    border-radius: 0.625rem;
+    font-size: 0.85rem;
+    color: var(--gray-600);
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s ease;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+}
+
+.logo-upload-btn:active {
+    background: var(--gray-200);
+}
+
+.logo-upload-btn.has-logo {
+    border-color: var(--success);
+    color: var(--success);
+}
+
+/* Success card */
+.success-card {
+    text-align: center;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.success-icon {
+    width: 56px;
+    height: 56px;
+    background: var(--success);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.success-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 0.375rem;
+}
+
+.success-message {
+    color: var(--gray-500);
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+}
+
+/* Preview */
+.preview-card {
+    background: var(--gray-50);
+    border-radius: 0.75rem;
+    padding: 0.75rem;
+    width: 100%;
+    text-align: center;
+}
+
+.preview-logo {
+    width: 48px;
+    height: 48px;
+    border-radius: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 0.375rem;
+    font-weight: 700;
+    color: white;
+    overflow: hidden;
+}
+
+.preview-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.preview-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.step-enter {
+    animation: fadeIn 0.25s ease;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.htmx-swapping {
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.htmx-added {
+    animation: fadeIn 0.25s ease;
+}
+
+/* Hide scrollbar */
+::-webkit-scrollbar {
+    display: none;
+}
+
+/* Responsive for very small screens */
+@media (max-height: 600px) {
+    .app-header { height: 48px; }
+    .main-container { height: calc(100vh - 48px); height: calc(100dvh - 48px); padding: 0.5rem; }
+    .wizard-content { padding: 0.75rem 1rem; }
+    .screen-title { font-size: 1.1rem; }
+    .form-group { margin-bottom: 0.5rem; }
+    .step-circle { width: 24px; height: 24px; font-size: 0.7rem; }
+    .step-label { font-size: 0.65rem; }
+}
+
+/* Force no scroll - mobile app feel */
+@media (max-width: 768px) {
+    html, body {
+        position: fixed;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+    }
+    
+    .main-container {
+        height: calc(100% - 56px);
+    }
+}

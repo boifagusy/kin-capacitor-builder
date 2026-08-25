@@ -1,0 +1,85 @@
+{{define "screen2"}}
+<div class="step-enter">
+    <h2 class="screen-title">App Branding</h2>
+    <p class="screen-description">Customize your app</p>
+    
+    <form hx-post="/wizard/2" hx-target="#wizard-content" hx-swap="innerHTML" style="flex:1;display:flex;flex-direction:column;">
+        <div class="form-group">
+            <label for="app_name" class="form-label">App Name</label>
+            <input type="text" 
+                   id="app_name" 
+                   name="app_name" 
+                   value="{{.Project.AppName}}"
+                   placeholder="My App"
+                   class="form-input"
+                   required
+                   maxlength="30">
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Logo</label>
+            <div class="logo-upload-area">
+                <div class="logo-preview" id="logo-preview">
+                    <span class="logo-preview-placeholder" id="logo-placeholder">🖼️</span>
+                    <img id="logo-image" style="display:none;" alt="Logo">
+                </div>
+                <button type="button" class="logo-upload-btn" id="logo-upload-btn" onclick="document.getElementById('logo-file-input').click()">
+                    📁 Choose Logo
+                </button>
+                <input type="file" 
+                       id="logo-file-input" 
+                       accept="image/*"
+                       style="display:none;"
+                       onchange="handleLogoSelect(event)">
+                <input type="hidden" id="logo_path" name="logo_path" value="{{.Project.LogoPath}}">
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Primary Color</label>
+            <div class="color-picker-group">
+                <input type="color" 
+                       id="primary_color" 
+                       name="primary_color" 
+                       value="{{.Project.PrimaryColor}}"
+                       class="color-input-native"
+                       @input="updateColorPreview()">
+                
+                <input type="text" 
+                       id="primary_color_text" 
+                       value="{{.Project.PrimaryColor}}"
+                       class="color-input-text"
+                       placeholder="#6366f1"
+                       @input="updateColorPicker()"
+                       maxlength="7">
+                
+                <div class="color-preview" 
+                     :style="'background-color: ' + primaryColor">
+                </div>
+            </div>
+            
+            <div class="color-swatches">
+                <div class="color-swatch" style="background: #6366f1" @click="setColor('#6366f1')"></div>
+                <div class="color-swatch" style="background: #10b981" @click="setColor('#10b981')"></div>
+                <div class="color-swatch" style="background: #ef4444" @click="setColor('#ef4444')"></div>
+                <div class="color-swatch" style="background: #f59e0b" @click="setColor('#f59e0b')"></div>
+                <div class="color-swatch" style="background: #8b5cf6" @click="setColor('#8b5cf6')"></div>
+                <div class="color-swatch" style="background: #ec4899" @click="setColor('#ec4899')"></div>
+            </div>
+        </div>
+        
+        <div class="form-actions">
+            <button type="button" 
+                    hx-get="/wizard/1" 
+                    hx-target="#wizard-content"
+                    class="btn btn-secondary">
+                ←
+            </button>
+            
+            <button type="submit" class="btn btn-primary">
+                Save ✓
+            </button>
+        </div>
+    </form>
+</div>
+{{end}}
