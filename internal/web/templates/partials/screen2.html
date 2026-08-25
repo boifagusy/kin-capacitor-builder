@@ -3,7 +3,10 @@
     <h2 class="screen-title">App Branding</h2>
     <p class="screen-description">Customize your app</p>
     
-    <form hx-post="/wizard/2" hx-target="#wizard-content" hx-swap="innerHTML" style="flex:1;display:flex;flex-direction:column;">
+    <form hx-post="/wizard/2?project_id={{.ProjectID}}" 
+          hx-target="#wizard-content" 
+          hx-swap="innerHTML" 
+          style="flex:1;display:flex;flex-direction:column;">
         <div class="form-group">
             <label for="app_name" class="form-label">App Name</label>
             <input type="text" 
@@ -44,7 +47,6 @@
                        value="{{.Project.PrimaryColor}}"
                        class="color-input-native"
                        @input="updateColorPreview()">
-                
                 <input type="text" 
                        id="primary_color_text" 
                        value="{{.Project.PrimaryColor}}"
@@ -52,12 +54,8 @@
                        placeholder="#6366f1"
                        @input="updateColorPicker()"
                        maxlength="7">
-                
-                <div class="color-preview" 
-                     :style="'background-color: ' + primaryColor">
-                </div>
+                <div class="color-preview" :style="'background-color: ' + primaryColor"></div>
             </div>
-            
             <div class="color-swatches">
                 <div class="color-swatch" style="background: #6366f1" @click="setColor('#6366f1')"></div>
                 <div class="color-swatch" style="background: #10b981" @click="setColor('#10b981')"></div>
@@ -70,15 +68,10 @@
         
         <div class="form-actions">
             <button type="button" 
-                    hx-get="/wizard/1" 
+                    hx-get="/wizard/1?project_id={{.ProjectID}}" 
                     hx-target="#wizard-content"
-                    class="btn btn-secondary">
-                ←
-            </button>
-            
-            <button type="submit" class="btn btn-primary">
-                Save ✓
-            </button>
+                    class="btn btn-secondary">←</button>
+            <button type="submit" class="btn btn-primary">Save ✓</button>
         </div>
     </form>
 </div>

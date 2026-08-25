@@ -3,7 +3,10 @@
     <h2 class="screen-title">Website URL</h2>
     <p class="screen-description">Enter your website to convert to an app</p>
     
-    <form hx-post="/wizard/1" hx-target="#wizard-content" hx-swap="innerHTML" style="flex:1;display:flex;flex-direction:column;">
+    <form hx-post="/wizard/1?project_id={{.ProjectID}}" 
+          hx-target="#wizard-content" 
+          hx-swap="innerHTML" 
+          style="flex:1;display:flex;flex-direction:column;">
         <div class="form-group">
             <label for="url" class="form-label">URL</label>
             <input type="url" 
@@ -24,9 +27,7 @@
         </div>
         
         <div class="form-actions">
-            <button type="submit" class="btn btn-primary">
-                Continue →
-            </button>
+            <button type="submit" class="btn btn-primary">Continue →</button>
         </div>
     </form>
 </div>
