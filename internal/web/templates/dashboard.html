@@ -1,0 +1,65 @@
+{{define "dashboard"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>My Apps - Local APK Builder</title>
+    <script src="/static/vendor/htmx.min.js"></script>
+    <script src="/static/vendor/alpine.min.js" defer></script>
+    <link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body>
+    <header class="app-header">
+        <div class="header-content">
+            <div class="app-icon">📱</div>
+            <span class="app-title">My Apps</span>
+        </div>
+    </header>
+    
+    <main class="main-container">
+        <div class="dashboard-container">
+            <div class="dashboard-header">
+                <h1>My Apps</h1>
+                <a href="/wizard/1" class="btn btn-primary">
+                    + Create App
+                </a>
+            </div>
+            
+            {{if eq .Count 0}}
+            <div class="empty-state">
+                <div class="empty-icon">🚀</div>
+                <h2>No apps yet</h2>
+                <p>Create your first app by entering your website URL.</p>
+                <a href="/wizard/1" class="btn btn-primary">Create App</a>
+            </div>
+            {{else}}
+            <div class="project-grid">
+                {{range .Projects}}
+                <div class="project-card">
+                    <div class="project-card-header">
+                        <div class="project-icon" style="background-color: {{.PrimaryColor}};">
+                            {{if .AppName}}{{slice .AppName 0 1}}{{else}}📱{{end}}
+                        </div>
+                        <span class="status-badge status-{{.Status}}">{{.Status}}</span>
+                    </div>
+                    <h3 class="project-name">{{if .ProjectName}}{{.ProjectName}}{{else}}{{.AppName}}{{end}}</h3>
+                    <p class="project-url">{{.URL}}</p>
+                    <p class="project-version">v{{.Version}}</p>
+                    <div class="project-actions">
+                        <a href="/projects/{{.ID}}" class="btn btn-secondary btn-small">Open</a>
+                        <form action="/projects/{{.ID}}/delete" method="POST" 
+                              onsubmit="return confirm('Delete this app?');"
+                              style="display:inline;">
+                            <button type="submit" class="btn btn-danger btn-small">Delete</button>
+                        </form>
+                    </div>
+                </div>
+                {{end}}
+            </div>
+            {{end}}
+        </div>
+    </main>
+</body>
+</html>
+{{end}}

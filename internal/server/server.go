@@ -1,6 +1,7 @@
 package server
 
 import (
+    "strings"
     "context"
     "log"
     "net/http"
@@ -10,6 +11,7 @@ import (
     "time"
     
     "local-apk-builder/internal/config"
+    "local-apk-builder/internal/dashboard"
     "local-apk-builder/internal/web"
 )
 
@@ -17,6 +19,7 @@ type Server struct {
     httpServer *http.Server
     config     *config.Config
     handler    *Handler
+    dashboard  *dashboard.Handler
 }
 
 func New(cfg *config.Config) (*Server, error) {
@@ -26,9 +29,21 @@ func New(cfg *config.Config) (*Server, error) {
     }
     
     handler := NewHandler(templates)
+    dashHandler := dashboard.NewHandler(templates)
     
     mux := http.NewServeMux()
     
+    // Dashboard routes
+    mux.HandleFunc("/dashboard", dashHandler.DashboardHandler)
+    mux.HandleFunc("/projects/", func(w http.ResponseWriter, r *http.Request) {
+        if strings.HasSuffix(r.URL.Path, "/delete") {
+            dashHandler.DeleteProjectHandler(w, r)
+        } else {
+            dashHandler.ProjectDetailHandler(w, r)
+        }
+    })
+    
+    // Wizard routes (existing)
     mux.HandleFunc("/", handler.IndexHandler)
     mux.HandleFunc("/wizard/1", func(w http.ResponseWriter, r *http.Request) {
         switch r.Method {
@@ -50,10 +65,14 @@ func New(cfg *config.Config) (*Server, error) {
             http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
         }
     })
+    
+    // API routes
     mux.HandleFunc("/api/validate-url", handler.ValidateURLHandler)
     mux.HandleFunc("/api/project-state", handler.ProjectStateHandler)
+    mux.HandleFunc("/api/projects", dashHandler.APIListProjects)
+    mux.HandleFunc("/api/projects/", dashHandler.APIGetProject)
     
-    // Serve static files
+    // Static files
     staticFS, err := web.StaticFileServer()
     if err != nil {
         return nil, err
@@ -77,6 +96,7 @@ func New(cfg *config.Config) (*Server, error) {
         httpServer: httpServer,
         config:     cfg,
         handler:    handler,
+        dashboard:  dashHandler,
     }, nil
 }
 

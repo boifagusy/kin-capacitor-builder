@@ -1,0 +1,71 @@
+{{define "project_detail"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>{{.Project.AppName}} - Local APK Builder</title>
+    <script src="/static/vendor/htmx.min.js"></script>
+    <script src="/static/vendor/alpine.min.js" defer></script>
+    <link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body>
+    <header class="app-header">
+        <div class="header-content">
+            <a href="/dashboard" class="back-btn">←</a>
+            <div class="app-icon" style="background-color: {{.Project.PrimaryColor}};">
+                {{if .Project.AppName}}{{slice .Project.AppName 0 1}}{{else}}📱{{end}}
+            </div>
+            <span class="app-title">{{.Project.AppName}}</span>
+        </div>
+    </header>
+    
+    <main class="main-container">
+        <div class="project-detail-container">
+            <div class="detail-section">
+                <h2>Overview</h2>
+                <div class="detail-row">
+                    <span class="detail-label">Website URL</span>
+                    <span class="detail-value">{{.Project.URL}}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">App Name</span>
+                    <span class="detail-value">{{.Project.AppName}}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Primary Color</span>
+                    <span class="detail-value">
+                        <span class="color-dot" style="background-color: {{.Project.PrimaryColor}};"></span>
+                        {{.Project.PrimaryColor}}
+                    </span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Status</span>
+                    <span class="detail-value status-badge status-{{.Project.Status}}">{{.Project.Status}}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Version</span>
+                    <span class="detail-value">v{{.Project.Version}}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Created</span>
+                    <span class="detail-value">{{.Project.CreatedAt.Format "Jan 2, 2006"}}</span>
+                </div>
+            </div>
+            
+            <div class="detail-section">
+                <h2>Actions</h2>
+                <div class="action-buttons">
+                    <a href="/wizard/2" class="btn btn-primary">Edit</a>
+                    <button class="btn btn-secondary" disabled>Build APK (Coming Soon)</button>
+                    <form action="/projects/{{.Project.ID}}/delete" method="POST" 
+                          onsubmit="return confirm('Delete this app?');">
+                        <button type="submit" class="btn btn-danger">Delete</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>
+{{end}}
