@@ -37,3 +37,4 @@ android/.gradle/
 android/app/build/
 android/local.properties
 capacitor/android/local.properties
+capacitor/android/app/src/main/assets/go/local-apk-builder
