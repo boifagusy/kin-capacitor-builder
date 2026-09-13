@@ -1,0 +1,58 @@
+{{define "screen6"}}
+<div class="step-enter">
+    <h2 class="screen-title">Review & Preview</h2>
+    <p class="screen-description">Check your app before building</p>
+
+    <div class="detail-card">
+        <div class="detail-row"><span class="detail-label">App Name</span><span class="detail-value">{{.Project.AppName}}</span></div>
+        <div class="detail-row"><span class="detail-label">Website</span><span class="detail-value">{{.Project.URL}}</span></div>
+        <div class="detail-row"><span class="detail-label">Color</span><span class="detail-value">{{.Project.PrimaryColor}}</span></div>
+    </div>
+
+    <a href="/projects/{{.Project.ID}}/preview" target="_blank" class="btn btn-secondary" style="width:100%;margin-top:1rem;">
+        🌐 Open Preview in Browser
+    </a>
+
+    <form action="/projects/{{.Project.ID}}/build" method="POST" style="width:100%;margin-top:0.75rem;">
+
+        <!-- Runtime Type selector -->
+        <div style="background:white;border-radius:0.75rem;padding:1rem;margin-bottom:0.75rem;box-shadow:0 1px 3px rgba(0,0,0,0.1);text-align:left;">
+            <div style="font-weight:600;font-size:0.9rem;color:#374151;margin-bottom:0.75rem;">Runtime Type</div>
+
+            <label style="display:flex;align-items:flex-start;gap:0.5rem;padding:0.6rem;border-radius:0.5rem;cursor:pointer;margin-bottom:0.4rem;">
+                <input type="radio" name="runtime_type" value="none" {{if eq .Project.RuntimeType "none"}}checked{{end}} style="margin-top:0.2rem;">
+                <div>
+                    <div style="font-weight:600;font-size:0.85rem;color:#374151;">None (Classic WebView)</div>
+                    <div style="font-size:0.75rem;color:#6b7280;margin-top:0.15rem;">Lightweight wrapper. Best for static sites. ~3 MB APK.</div>
+                </div>
+            </label>
+
+            <label style="display:flex;align-items:flex-start;gap:0.5rem;padding:0.6rem;border-radius:0.5rem;cursor:pointer;margin-bottom:0.4rem;">
+                <input type="radio" name="runtime_type" value="go-sqlite" {{if eq .Project.RuntimeType "go-sqlite"}}checked{{end}} style="margin-top:0.2rem;">
+                <div>
+                    <div style="font-weight:600;font-size:0.85rem;color:#374151;">Go Server Runtime</div>
+                    <div style="font-size:0.75rem;color:#6b7280;margin-top:0.15rem;">Local HTTP server + SQLite. All ABIs. ~27 MB APK.</div>
+                </div>
+            </label>
+
+            <label style="display:flex;align-items:flex-start;gap:0.5rem;padding:0.6rem;border-radius:0.5rem;cursor:pointer;">
+                <input type="radio" name="runtime_type" value="go-native" {{if eq .Project.RuntimeType "go-native"}}checked{{end}} style="margin-top:0.2rem;">
+                <div>
+                    <div style="font-weight:600;font-size:0.85rem;color:#374151;">Go Native Runtime <span style="color:#6366f1;">(Recommended)</span></div>
+                    <div style="font-size:0.75rem;color:#6b7280;margin-top:0.15rem;">Direct JNI bridge + SQLite. No server. ~15 MB APK, all phones.</div>
+                </div>
+            </label>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width:100%;">📦 Build APK</button>
+    </form>
+
+    <div class="form-actions" style="margin-top:1rem;">
+        <button type="button"
+                hx-get="/wizard/5?project_id={{.ProjectID}}"
+                hx-target="#wizard-content"
+                class="btn btn-secondary">← Back</button>
+        <a href="/dashboard" class="btn btn-primary">Finish & Build Later</a>
+    </div>
+</div>
+{{end}}

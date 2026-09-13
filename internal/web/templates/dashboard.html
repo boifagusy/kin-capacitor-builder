@@ -1,0 +1,90 @@
+{{define "dashboard"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>My Apps</title>
+    <script src="/static/vendor/htmx.min.js"></script>
+    <script src="/static/vendor/alpine.min.js" defer></script>
+    <link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body style="background: #f5f5f7; min-height: 100vh; margin: 0; font-family: -apple-system, sans-serif;">
+    <header class="app-header">
+        <div class="header-content">
+            <div class="app-icon">📱</div>
+            <span class="app-title">My Apps</span>
+            <span class="app-count">{{.Count}}</span>
+            <a href="/guide/backend-bridge" target="_blank" style="margin-left:auto;color:#6366f1;text-decoration:none;font-size:0.8rem;font-weight:600;">📖 Guide</a>
+            <a href="/settings/github" style="margin-left:0.75rem;color:#6366f1;text-decoration:none;font-size:1.2rem;" aria-label="GitHub Settings">⚙️</a>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <div class="dashboard-container">
+            {{if .GitHubUsername}}
+            <div style="display:flex;align-items:center;justify-content:center;gap:0.5rem;padding:0.6rem 1rem;margin-bottom:0.6rem;font-size:0.85rem;">
+                <span style="width:8px;height:8px;border-radius:50%;background:#16a34a;display:inline-block;"></span>
+                <span style="color:#374151;font-weight:500;">@{{.GitHubUsername}}</span>
+            </div>
+            {{if .TokenExpired}}
+            <div style="display:flex;align-items:center;justify-content:center;gap:0.5rem;padding:0.6rem 1rem;margin-bottom:0.6rem;background:#fef2f2;border:1px solid #fecaca;border-radius:0.5rem;font-size:0.8rem;">
+                <span style="color:#dc2626;">⚠</span>
+                <span style="color:#991b1b;">Token expired · {{.TokenAgeMinutes}}m</span>
+                <a href="/auth/github" style="color:#6366f1;text-decoration:none;font-weight:500;">Re-authenticate</a>
+            </div>
+            {{else if .TokenExpiringSoon}}
+            <div style="display:flex;align-items:center;justify-content:center;gap:0.5rem;padding:0.6rem 1rem;margin-bottom:0.6rem;background:#fffbeb;border:1px solid #fde68a;border-radius:0.5rem;font-size:0.8rem;">
+                <span style="color:#d97706;">◷</span>
+                <span style="color:#92400e;">Expiring soon · {{.TokenAgeMinutes}}m</span>
+                <a href="/auth/github" style="color:#6366f1;text-decoration:none;font-weight:500;">Refresh</a>
+            </div>
+            {{end}}
+            {{else}}
+            <a href="/auth/github" style="display:block;background:white;border-radius:0.75rem;padding:0.75rem 1rem;margin-bottom:1rem;box-shadow:0 1px 3px rgba(0,0,0,0.1);text-align:center;color:#6366f1;font-weight:600;text-decoration:none;">🔗 Connect GitHub</a>
+            {{end}}
+            {{if eq .Count 0}}
+            <div class="empty-state">
+                <div class="empty-icon">📱</div>
+                <h2>No apps yet</h2>
+                <p>Create your first app from a website</p>
+                <a href="/wizard/1" class="btn btn-primary">Create App</a>
+            </div>
+            {{else}}
+            <div class="project-list">
+                {{range .Projects}}
+                <div class="project-card-wrapper" style="background:white;border-radius:0.75rem;margin-bottom:0.75rem;box-shadow:0 1px 3px rgba(0,0,0,0.1);overflow:hidden;">
+                    <a href="/projects/{{.ID}}" class="project-card" style="display:flex;align-items:center;padding:1rem;text-decoration:none;color:inherit;">
+                        <div class="project-icon" style="background-color: {{.PrimaryColor}};">
+                            {{if .AppName}}{{slice .AppName 0 1}}{{else}}📱{{end}}
+                        </div>
+                        <div class="project-info">
+                            <div class="project-name">{{.AppName}}</div>
+                            <div class="project-url">{{.URL}}</div>
+                        </div>
+                        <span class="project-chevron">›</span>
+                    </a>
+                    <div class="project-actions" style="display:flex;gap:0.5rem;padding:0 1rem 0.75rem 1rem;">
+                        <form action="/projects/{{.ID}}/build" method="POST" style="flex:1;"
+                              hx-post="/projects/{{.ID}}/build"
+                              hx-target="#build-status-{{.ID}}"
+                              hx-swap="innerHTML">
+                            <button type="submit" class="btn btn-primary" style="width:100%;font-size:0.85rem;padding:0.5rem;">📦 Build</button>
+                        </form>
+                        <div id="build-status-{{.ID}}" style="flex:1;text-align:center;font-size:0.75rem;color:#6b7280;padding:0.5rem;">
+                            &nbsp;
+                        </div>
+                    </div>
+                </div>
+                {{end}}
+            </div>
+            {{end}}
+        </div>
+    </main>
+
+    <a href="/wizard/1" class="fab" aria-label="Create app">+</a>
+</body>
+</html>
+{{end}}

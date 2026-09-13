@@ -1,0 +1,165 @@
+{{define "screen4"}}
+<div class="step-enter" x-data="featuresScreen('{{.Project.FeaturesConfig}}')">
+    <h2 class="screen-title">App Plugins</h2>
+    <p class="screen-description">Default plugins are always included. Select optional features below.</p>
+
+    <form hx-post="/wizard/4?project_id={{.ProjectID}}"
+          hx-target="#wizard-content"
+          hx-swap="innerHTML"
+          style="flex:1;display:flex;flex-direction:column;">
+
+        <!-- Default Plugins (Always Included) -->
+        <div style="margin-bottom:1rem;">
+            <div style="font-weight:700;font-size:0.8rem;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem;">
+                ✅ Default Plugins (Always Included)
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:0.4rem;">
+                <div class="default-plugin-badge">
+                    <span class="plugin-icon">🚀</span><span class="plugin-name">Splash Screen</span>
+                    <span style="font-size:0.6rem;color:#10b981;font-weight:700;">DEFAULT</span>
+                </div>
+                <div class="default-plugin-badge">
+                    <span class="plugin-icon">📱</span><span class="plugin-name">App</span>
+                    <span style="font-size:0.6rem;color:#10b981;font-weight:700;">DEFAULT</span>
+                </div>
+                <div class="default-plugin-badge">
+                    <span class="plugin-icon">💾</span><span class="plugin-name">Preferences</span>
+                    <span style="font-size:0.6rem;color:#10b981;font-weight:700;">DEFAULT</span>
+                </div>
+                <div class="default-plugin-badge">
+                    <span class="plugin-icon">📡</span><span class="plugin-name">Network</span>
+                    <span style="font-size:0.6rem;color:#10b981;font-weight:700;">DEFAULT</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Optional Plugins -->
+        <div style="flex:1;overflow-y:auto;margin-bottom:1rem;">
+            <div style="font-weight:700;font-size:0.8rem;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem;">
+                ⚡ Optional Plugins (Tap to Enable)
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:0.5rem;">
+                <div class="plugin-card" :class="features.includes('camera') ? 'selected' : ''" @click="toggle('camera')">
+                    <span class="plugin-icon">📷</span><span class="plugin-name">Camera</span>
+                </div>
+                <div class="plugin-card" :class="features.includes('geolocation') ? 'selected' : ''" @click="toggle('geolocation')">
+                    <span class="plugin-icon">📍</span><span class="plugin-name">Location</span>
+                </div>
+                <div class="plugin-card" :class="features.includes('push-notifications') ? 'selected' : ''" @click="toggle('push-notifications')">
+                    <span class="plugin-icon">🔔</span><span class="plugin-name">Push</span>
+                </div>
+                <div class="plugin-card" :class="features.includes('filesystem') ? 'selected' : ''" @click="toggle('filesystem')">
+                    <span class="plugin-icon">📁</span><span class="plugin-name">Files</span>
+                </div>
+                <div class="plugin-card" :class="features.includes('share') ? 'selected' : ''" @click="toggle('share')">
+                    <span class="plugin-icon">📤</span><span class="plugin-name">Share</span>
+                </div>
+                <div class="plugin-card" :class="features.includes('haptics') ? 'selected' : ''" @click="toggle('haptics')">
+                    <span class="plugin-icon">📳</span><span class="plugin-name">Haptics</span>
+                </div>
+                <div class="plugin-card" :class="features.includes('browser') ? 'selected' : ''" @click="toggle('browser')">
+                    <span class="plugin-icon">🔗</span><span class="plugin-name">Browser</span>
+                </div>
+                <div class="plugin-card" :class="features.includes('clipboard') ? 'selected' : ''" @click="toggle('clipboard')">
+                    <span class="plugin-icon">📋</span><span class="plugin-name">Clipboard</span>
+                </div>
+                <div class="plugin-card" :class="features.includes('status-bar') ? 'selected' : ''" @click="toggle('status-bar')">
+                    <span class="plugin-icon">📊</span><span class="plugin-name">Status Bar</span>
+                </div>
+                <div class="plugin-card" :class="features.includes('local-notifications') ? 'selected' : ''" @click="toggle('local-notifications')">
+                    <span class="plugin-icon">⏰</span><span class="plugin-name">Local Alerts</span>
+                </div>
+                <div class="plugin-card" :class="features.includes('screen-reader') ? 'selected' : ''" @click="toggle('screen-reader')">
+                    <span class="plugin-icon">♿</span><span class="plugin-name">Reader</span>
+                </div>
+                <div class="plugin-card" :class="features.includes('text-zoom') ? 'selected' : ''" @click="toggle('text-zoom')">
+                    <span class="plugin-icon">🔍</span><span class="plugin-name">Text Zoom</span>
+                </div>
+                <div class="plugin-card" :class="features.includes('calendar') ? 'selected' : ''" @click="toggle('calendar')">
+                    <span class="plugin-icon">📅</span><span class="plugin-name">Calendar</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Backend Bridge Section -->
+        <div style="background:white;border:1px solid var(--gray-200);border-radius:0.75rem;padding:1rem;margin-bottom:1rem;">
+            <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.75rem;">
+                <span style="font-size:1.2rem;">🔌</span>
+                <div>
+                    <div style="font-weight:600;font-size:0.9rem;color:var(--gray-800);">Backend Bridge</div>
+                    <div style="font-size:0.7rem;color:var(--gray-400);">Connect your server to send user data & notifications</div>
+                    <a href="/guide/backend-bridge" target="_blank" style="font-size:0.7rem;color:var(--primary);text-decoration:none;font-weight:600;">📖 Integration Guide →</a>
+                </div>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.75rem;">
+                <label style="font-weight:600;font-size:0.85rem;color:var(--gray-700);">Enable Bridge</label>
+                <input type="checkbox" name="bridge_enabled" x-model="bridgeEnabled" style="width:18px;height:18px;accent-color:var(--primary);">
+            </div>
+
+            <div x-show="bridgeEnabled" style="display:flex;flex-direction:column;gap:0.5rem;">
+                <div>
+                    <label style="font-size:0.7rem;font-weight:600;color:var(--gray-600);">Backend URL</label>
+                    <input type="url" name="bridge_url" x-model="bridgeUrl" placeholder="https://api.example.com" class="form-input">
+                </div>
+                <div>
+                    <label style="font-size:0.7rem;font-weight:600;color:var(--gray-600);">Auth Mode</label>
+                    <select name="bridge_auth_mode" x-model="bridgeAuthMode" class="form-input">
+                        <option value="none">None (device only)</option>
+                        <option value="cookie">Existing Login (Cookie/Session)</option>
+                        <option value="token">Token (JWT)</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:0.7rem;font-weight:600;color:var(--gray-600);">Notification Mode</label>
+                    <select name="bridge_notification_mode" x-model="bridgeNotificationMode" class="form-input">
+                        <option value="polling">Polling</option>
+                        <option value="websocket">WebSocket</option>
+                        <option value="push">Push (FCM)</option>
+                    </select>
+                </div>
+                <div x-show="bridgeNotificationMode === 'push'">
+                    <label style="font-size:0.7rem;font-weight:600;color:var(--gray-600);">Google Services JSON</label>
+                    <input type="file" name="google_services_json" accept=".json" class="form-input" style="padding:0.5rem;">
+                    <p style="font-size:0.6rem;color:var(--gray-400);margin-top:0.25rem;">Upload google-services.json from Firebase</p>
+                </div>
+                <div x-show="bridgeNotificationMode === 'polling'">
+                    <label style="font-size:0.7rem;font-weight:600;color:var(--gray-600);">Polling Interval (seconds)</label>
+                    <input type="number" name="bridge_poll_interval" x-model="bridgePollInterval" min="5" value="30" class="form-input">
+                </div>
+            </div>
+        </div>
+
+        <input type="hidden" name="features" :value="features.join(',')">
+
+        <div class="form-actions">
+            <button type="button"
+                    hx-get="/wizard/3?project_id={{.ProjectID}}"
+                    hx-target="#wizard-content"
+                    class="btn btn-secondary">← Back</button>
+            <button type="submit" class="btn btn-primary">Continue →</button>
+        </div>
+    </form>
+</div>
+
+<style>
+    .default-plugin-badge {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.5rem 0.6rem;
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        border-radius: 0.5rem;
+        font-size: 0.8rem;
+    }
+    .default-plugin-badge .plugin-icon {
+        font-size: 1.1rem;
+    }
+    .default-plugin-badge .plugin-name {
+        flex: 1;
+        font-weight: 600;
+        color: var(--gray-700);
+    }
+</style>
+{{end}}

@@ -1,0 +1,140 @@
+{{define "screen5"}}
+<div class="step-enter" x-data="navScreen({{.NavConfig}})">
+    <h2 class="screen-title">Navigation &amp; Loading</h2>
+    <p class="screen-description">Choose how users move and what they see while pages load</p>
+
+    <!-- Navigation Style -->
+    <div class="form-section-card">
+        <div class="form-section-header">
+            <span class="form-section-icon">🧭</span>
+            <div>
+                <div class="form-section-title">Navigation Style</div>
+                <div class="form-section-hint">Select how menu appears</div>
+            </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.625rem;">
+            <div class="nav-style-card" :class="style === 'bottom' ? 'selected' : ''" @click="style = 'bottom'">
+                <div class="nav-preview-bottom">
+                    <div class="nav-preview-dot"></div>
+                    <div class="nav-preview-dot active"></div>
+                    <div class="nav-preview-dot"></div>
+                </div>
+                <div class="nav-style-label">Bottom Tabs</div>
+            </div>
+            <div class="nav-style-card" :class="style === 'hamburger' ? 'selected' : ''" @click="style = 'hamburger'">
+                <div class="nav-preview-hamburger">
+                    <div class="hamburger-line"></div>
+                    <div class="hamburger-line"></div>
+                    <div class="hamburger-line"></div>
+                </div>
+                <div class="nav-style-label">Hamburger</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Menu Items -->
+    <div class="form-section-card">
+        <div class="form-section-header">
+            <span class="form-section-icon">📋</span>
+            <div>
+                <div class="form-section-title">Menu Items</div>
+                <div class="form-section-hint">Add up to 5 links with icons</div>
+            </div>
+        </div>
+        <template x-for="(item, index) in items" :key="index">
+            <div class="nav-item-row" style="background:var(--gray-50);border-radius:0.75rem;padding:0.625rem;margin-bottom:0.5rem;">
+                <div style="display:flex;gap:0.5rem;align-items:center;">
+                    <div style="position:relative;flex:0 0 auto;">
+                        <div class="icon-picker-btn" @click="toggleDropdown(index)">
+                            <i :class="'fas ' + (item.icon || 'fa-plus')" style="color:var(--primary);"></i>
+                        </div>
+                        <div class="icon-picker-popover" x-show="openDropdown === index" @click.stop>
+                            <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0.25rem;max-width:200px;">
+                                <template x-for="icon in filteredIcons.slice(0, 15)" :key="icon">
+                                    <div class="icon-picker-option"
+                                         :class="item.icon === icon ? 'selected' : ''"
+                                         @click="selectIcon(index, icon)">
+                                        <i :class="'fas ' + icon" style="font-size:0.8rem;"></i>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                    <input type="url" placeholder="https://example.com" x-model="item.url"
+                           class="form-input" style="flex:1;padding:0.5rem 0.75rem;">
+                    <button type="button" @click="removeItem(index)"
+                            class="btn-remove" style="flex:0 0 auto;">×</button>
+                </div>
+            </div>
+        </template>
+        <button type="button" @click="addItem" x-show="items.length < 5"
+                class="btn-add" style="width:100%;">
+            <span class="add-icon">+</span> Add Menu Item
+        </button>
+    </div>
+
+    <!-- Loading Animation -->
+    <div class="form-section-card">
+        <div class="form-section-header">
+            <span class="form-section-icon">⏳</span>
+            <div>
+                <div class="form-section-title">Loading Animation</div>
+                <div class="form-section-hint">Shown while pages load</div>
+            </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0.5rem;">
+            <div class="animation-card" :class="loadingAnimation === 'spinner' ? 'selected' : ''"
+                 @click="loadingAnimation = 'spinner'">
+                <div class="animation-preview">
+                    <div class="spinner-sm"></div>
+                </div>
+                <div class="animation-label">Spinner</div>
+            </div>
+            <div class="animation-card" :class="loadingAnimation === 'skeleton' ? 'selected' : ''"
+                 @click="loadingAnimation = 'skeleton'">
+                <div class="animation-preview">
+                    <div class="skeleton-sm"></div>
+                    <div class="skeleton-sm" style="width:70%;"></div>
+                    <div class="skeleton-sm" style="width:50%;"></div>
+                </div>
+                <div class="animation-label">Skeleton</div>
+            </div>
+            <div class="animation-card" :class="loadingAnimation === 'dots' ? 'selected' : ''"
+                 @click="loadingAnimation = 'dots'">
+                <div class="animation-preview">
+                    <div class="dots-sm">
+                        <span></span><span></span><span></span>
+                    </div>
+                </div>
+                <div class="animation-label">Dots</div>
+            </div>
+            <div class="animation-card" :class="loadingAnimation === 'progress' ? 'selected' : ''"
+                 @click="loadingAnimation = 'progress'">
+                <div class="animation-preview">
+                    <div class="progress-sm"><div class="progress-sm-fill"></div></div>
+                </div>
+                <div class="animation-label">Progress</div>
+            </div>
+            <div class="animation-card" :class="loadingAnimation === 'fade' ? 'selected' : ''"
+                 @click="loadingAnimation = 'fade'">
+                <div class="animation-preview">
+                    <div class="fade-sm"></div>
+                </div>
+                <div class="animation-label">Fade</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-actions">
+        <button type="button"
+                hx-get="/wizard/4?project_id={{.ProjectID}}"
+                hx-target="#wizard-content"
+                class="btn btn-secondary">← Back</button>
+        <button type="button"
+                class="btn btn-primary"
+                @click="saveNavigation('{{.Project.ID}}')">
+            <span class="spinner-inline"></span>Continue →
+        </button>
+    </div>
+</div>
+{{end}}

@@ -1,0 +1,663 @@
+package generator
+
+import (
+    "bytes"
+    "encoding/base64"
+    "encoding/json"
+    "fmt"
+    "image"
+    "image/color"
+    "image/draw"
+    "image/png"
+    "strings"
+
+    xdraw "golang.org/x/image/draw"
+)
+
+// BridgeConfig represents backend bridge settings
+type BridgeConfig struct {
+    Enabled          bool   `json:"enabled"`
+    URL              string `json:"url"`
+    AuthMode         string `json:"auth_mode"`
+    NotificationMode string `json:"notification_mode"`
+    PollInterval     string `json:"poll_interval"`
+}
+
+// AppConfig represents runtime config embedded in generated app
+type AppConfig struct {
+    InitialURL string       `json:"initial_url"`
+    NavStyle   string       `json:"nav_style"`
+    Items      []NavItem    `json:"items"`
+    Bridge     BridgeConfig `json:"bridge,omitempty"`
+}
+
+// GenerateAppConfigJSON builds assets/app_config.json
+func (g *Generator) GenerateAppConfigJSON() string {
+    nav := NavConfig{
+        Style: "bottom",
+        Items: []NavItem{},
+    }
+    if g.project.OnboardingConfig != "" {
+        json.Unmarshal([]byte(g.project.OnboardingConfig), &nav)
+    }
+
+    bridge := BridgeConfig{}
+    if g.project.BridgeConfig != "" {
+        json.Unmarshal([]byte(g.project.BridgeConfig), &bridge)
+    }
+
+    cfg := AppConfig{
+        InitialURL: g.project.URL,
+        NavStyle:   nav.Style,
+        Items:      nav.Items,
+        Bridge:     bridge,
+    }
+    data, _ := json.Marshal(cfg)
+    return string(data)
+}
+
+// GenerateMainActivityJava builds a custom BridgeActivity with native bottom nav
+func (g *Generator) GenerateMainActivityJava() string {
+    appID := fmt.Sprintf("com.localapkbuilder.app%d", g.project.ID)
+    primaryColor := g.project.PrimaryColor
+
+    return fmt.Sprintf(`package %s;
+
+import android.os.Bundle;
+import android.view.Gravity;
+import android.view.View;
+import android.view.ViewGroup;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
+import android.content.res.AssetManager;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import com.getcapacitor.BridgeActivity;
+import java.io.InputStream;
+
+public class MainActivity extends BridgeActivity {
+    private WebView webView;
+    private LinearLayout navBar;
+    private View loadingOverlay;
+    private String primaryColor = "%s";
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        // No custom initialization - Capacitor handles everything
+    }
+
+    private String getInitialUrl() {
+        try {
+            JSONObject cfg = loadConfig();
+            return cfg.optString("initial_url", "");
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private JSONObject loadConfig() throws Exception {
+        AssetManager am = getAssets();
+        InputStream is = am.open("app_config.json");
+        byte[] buf = new byte[is.available()];
+        is.read(buf);
+        is.close();
+        return new JSONObject(new String(buf, "UTF-8"));
+    }
+
+    private void addNativeNav() {
+        try {
+            JSONObject cfg = loadConfig();
+            String navStyle = cfg.optString("nav_style", "bottom");
+            JSONArray items = cfg.optJSONArray("items");
+            if (items == null || items.length() == 0) return;
+
+            if ("bottom".equals(navStyle)) {
+                addBottomNav(items);
+            } else {
+                addHamburgerNav(items);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void addBottomNav(JSONArray items) {
+        navBar = new LinearLayout(this);
+        navBar.setOrientation(LinearLayout.HORIZONTAL);
+        navBar.setGravity(Gravity.CENTER);
+        try {
+            navBar.setBackgroundColor(Color.parseColor(primaryColor));
+        } catch (Exception e) {
+            navBar.setBackgroundColor(Color.parseColor("#111827"));
+        }
+        int sysBarHeight = getSystemNavBarHeight();
+        navBar.setPadding(dp(8), dp(8), dp(8), dp(8) + sysBarHeight);
+
+        for (int i = 0; i < items.length(); i++) {
+            try {
+                JSONObject item = items.getJSONObject(i);
+                String icon = item.optString("icon", "fa-circle");
+                String url = item.optString("url", "");
+                String animation = item.optString("animation", "spinner");
+
+                LinearLayout tab = new LinearLayout(this);
+                tab.setOrientation(LinearLayout.VERTICAL);
+                tab.setGravity(Gravity.CENTER);
+                tab.setPadding(dp(12), dp(6), dp(12), dp(6));
+                tab.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+                TextView iconView = new TextView(this);
+                iconView.setText(iconEmoji(icon));
+                iconView.setTextSize(22);
+                iconView.setGravity(Gravity.CENTER);
+                tab.addView(iconView);
+
+                TextView label = new TextView(this);
+                label.setText(iconLabel(icon));
+                label.setTextSize(11);
+                label.setTextColor(Color.parseColor("#FFFFFF"));
+                label.setGravity(Gravity.CENTER);
+                tab.addView(label);
+                final String targetUrl = url;
+                final String anim = animation;
+                tab.setOnClickListener(v -> showLoading(anim, targetUrl));
+                navBar.addView(tab);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        ViewGroup root = findViewById(android.R.id.content);
+        if (root instanceof ViewGroup) {
+            android.widget.FrameLayout.LayoutParams lp =
+                new android.widget.FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+                    Gravity.BOTTOM);
+            ((ViewGroup) root).addView(navBar, lp);
+        }
+    }
+
+    private void addHamburgerNav(JSONArray items) {
+        // For now use bottom nav fallback
+        addBottomNav(items);
+    }
+
+    private String iconEmoji(String icon) {
+        if (icon == null || icon.isEmpty()) return "📱";
+        if (icon.contains("house") || icon.contains("home")) return "🏠";
+        if (icon.contains("user") || icon.contains("profile")) return "👤";
+        if (icon.contains("comment") || icon.contains("message")) return "💬";
+        if (icon.contains("plus")) return "➕";
+        if (icon.contains("search")) return "🔍";
+        if (icon.contains("star")) return "⭐";
+        if (icon.contains("heart")) return "❤️";
+        if (icon.contains("gear") || icon.contains("cog") || icon.contains("settings")) return "⚙️";
+        if (icon.contains("bell")) return "🔔";
+        if (icon.contains("cart") || icon.contains("shopping")) return "🛒";
+        if (icon.contains("wallet") || icon.contains("money")) return "👛";
+        if (icon.contains("card")) return "💳";
+        if (icon.contains("chart") || icon.contains("graph")) return "📊";
+        if (icon.contains("file")) return "📄";
+        if (icon.contains("folder")) return "📁";
+        if (icon.contains("globe") || icon.contains("network")) return "🌐";
+        if (icon.contains("map")) return "🗺️";
+        if (icon.contains("phone")) return "📞";
+        if (icon.contains("camera")) return "📷";
+        return "📱";
+    }
+
+    private String iconLabel(String icon) {
+        if (icon == null || icon.isEmpty()) return "Home";
+        String[] parts = icon.split("-");
+        if (parts.length > 1) return parts[parts.length - 1];
+        return icon;
+    }
+
+    private int getSystemNavBarHeight() {
+        int resourceId = getResources().getIdentifier("navigation_bar_height", "dimen", "android");
+        if (resourceId > 0) {
+            return getResources().getDimensionPixelSize(resourceId);
+        }
+        return dp(48);
+    }
+
+    private void addLoadingOverlay() {
+        loadingOverlay = new View(this);
+        loadingOverlay.setBackgroundColor(Color.argb(180, 255, 255, 255));
+        loadingOverlay.setVisibility(View.GONE);
+        loadingOverlay.setClickable(true);
+
+        ViewGroup root = findViewById(android.R.id.content);
+        if (root instanceof ViewGroup) {
+            ((ViewGroup) root).addView(loadingOverlay, new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
+            ));
+        }
+    }
+
+    private void showLoading(String anim, final String url) {
+        if (loadingOverlay != null) loadingOverlay.setVisibility(View.VISIBLE);
+        loadingOverlay.postDelayed(() -> {
+            if (loadingOverlay != null) loadingOverlay.setVisibility(View.GONE);
+            if (url != null && !url.isEmpty()) webView.loadUrl(url);
+        }, 800);
+    }
+
+    private int dp(int px) {
+        return Math.round(px * getResources().getDisplayMetrics().density);
+    }
+}`, appID, primaryColor)
+}
+
+// DecodeLauncherIcon returns PNG bytes from the project logo data URL.
+func (g *Generator) DecodeLauncherIcon() []byte {
+    logo := g.project.LogoPath
+    if logo == "" {
+        return nil
+    }
+    prefix := "base64,"
+    idx := strings.Index(logo, prefix)
+    if idx < 0 {
+        return nil
+    }
+    data := logo[idx+len(prefix):]
+    decoded, err := base64.StdEncoding.DecodeString(data)
+    if err != nil {
+        return nil
+    }
+    return decoded
+}
+
+func (g *Generator) getSplashBackground() string {
+    color := g.project.PrimaryColor
+    if g.project.SplashConfig != "" {
+        var splash struct {
+            BackgroundColor string `json:"background_color"`
+        }
+        if err := json.Unmarshal([]byte(g.project.SplashConfig), &splash); err == nil && splash.BackgroundColor != "" {
+            color = splash.BackgroundColor
+        }
+    }
+    return color
+}
+
+// GenerateAppBridgeJS builds a simple JS bridge for backend communication.
+func (g *Generator) GenerateAppBridgeJS() string {
+    return `window.AppBridge = {
+    config: null,
+    authToken: null,
+    deviceId: null,
+
+    async init() {
+        try {
+            const res = await fetch('/app_config.json');
+            this.config = await res.json();
+        } catch(e) {}
+        try {
+            const { Preferences, Device } = window.Capacitor.Plugins;
+            // SKIP:             const token = await Preferences.get({ key: 'bridge_token' });
+            this.authToken = null;  // Default - Preferences.get() disabled
+            // SKIP:             const device = await Preferences.get({ key: 'bridge_device_id' });
+            this.deviceId = null;  // Default - Preferences.get() disabled
+
+            // Skip device ID initialization on startup - lazy load when needed
+            // This prevents second-launch crashes from plugin initialization
+            // deviceId will remain null until explicitly requested
+        } catch(e) {}
+
+        try {
+            const { PushNotifications } = window.Capacitor.Plugins;
+            if (PushNotifications) {
+                const permission = await PushNotifications.requestPermissions();
+                if (permission.receive === 'granted') {
+                    try {
+                        await PushNotifications.register();
+                    } catch (e) {
+                        console.warn('Push notifications not available:', e);
+                    }
+                }
+                PushNotifications.addListener('registration', (token) => {
+                    this.devicePushToken = token.value;
+                    this.sendPushTokenToBackend(token.value);
+                });
+                PushNotifications.addListener('pushNotificationReceived', (notification) => {
+                    this.showNotification({
+                        title: notification.title,
+                        body: notification.body,
+                        data: notification.data
+                    });
+                });
+            }
+        } catch(e) {}
+
+        try {
+            const { Network } = window.Capacitor.Plugins;
+            if (Network) {
+                Network.addListener('networkStatusChange', (status) => {
+                    if (status && status.connected) {
+                        this.flushOfflineNotifications();
+                    }
+                });
+            }
+        } catch(e) {}
+    },
+
+    async sendPushTokenToBackend(token) {
+        if (!this.config || !this.config.bridge || !this.config.bridge.enabled) return;
+        const base = this.config.bridge.url;
+        try {
+            const headers = { 'Content-Type': 'application/json' };
+            if (this.authToken) headers['Authorization'] = 'Bearer ' + this.authToken;
+            await fetch(base + '/api/app/push-token', {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({ token })
+            });
+        } catch(e) {}
+    },
+
+    async onUserLogin(data) {
+        this.authToken = data.token || null;
+        try {
+            // Lazy load Preferences when needed
+            await Preferences.set({ key: 'bridge_token', value: this.authToken || '' });
+            if (data.id) await Preferences.set({ key: 'bridge_user_id', value: String(data.id) });
+        } catch(e) {}
+    },
+
+    async onUserLogout() {
+        this.authToken = null;
+        try {
+            // Lazy load Preferences when needed
+            await Preferences.set({ key: 'bridge_token', value: '' });
+        } catch(e) {}
+    },
+
+    async fetchUserData() {
+        if (!this.config || !this.config.bridge || !this.config.bridge.enabled) return null;
+        const base = this.config.bridge.url;
+        try {
+            const headers = {};
+            if (this.authToken) headers['Authorization'] = 'Bearer ' + this.authToken;
+            const res = await fetch(base + '/api/app', { headers });
+            return await res.json();
+        } catch(e) {
+            return null;
+        }
+    },
+
+    async showNotification(notification) {
+        try {
+            const { LocalNotifications } = window.Capacitor.Plugins;
+            await LocalNotifications.schedule({
+                notifications: [{
+                    title: notification.title,
+                    body: notification.body,
+                    id: notification.id ? parseInt(notification.id) : Date.now(),
+                    schedule: { at: new Date(Date.now() + 1000) }
+                }]
+            });
+        } catch(e) {}
+    },
+
+    async saveOfflineNotification(notification) {
+        try {
+            // Lazy load Preferences when needed
+            const key = 'bridge_offline_queue';
+            const existing = await Preferences.get({ key });
+            let queue = [];
+            try { queue = JSON.parse(existing.value || '[]'); } catch(e) {}
+            queue.push(notification);
+            await Preferences.set({ key, value: JSON.stringify(queue) });
+        } catch(e) {}
+    },
+
+    async flushOfflineNotifications() {
+        try {
+            // Lazy load Preferences when needed
+            const key = 'bridge_offline_queue';
+            const existing = await Preferences.get({ key });
+            let queue = [];
+            try { queue = JSON.parse(existing.value || '[]'); } catch(e) {}
+            for (const notification of queue) {
+                await this.showNotification(notification);
+            }
+            await Preferences.set({ key, value: '[]' });
+        } catch(e) {}
+    },
+
+    async handlePluginAction(action) {
+        if (!action || !action.type) return;
+        const type = action.type;
+        const payload = action.payload || {};
+
+        try {
+            const { Camera, Geolocation, Filesystem, Share, Haptics, Clipboard, StatusBar, ScreenReader, TextZoom, Calendar } = window.Capacitor.Plugins;
+
+            switch (type) {
+                case 'camera':
+                    if (Camera && Camera.getPhoto) {
+                        await Camera.getPhoto({ source: 'CAMERA', resultType: 'dataUrl' });
+                    }
+                    break;
+                case 'geolocation':
+                    if (Geolocation && Geolocation.getCurrentPosition) {
+                        const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: payload.accuracy === 'high' });
+                        if (this.sendBridgeResult) await this.sendBridgeResult('geolocation', pos);
+                    }
+                    break;
+                case 'filesystem':
+                    if (Filesystem && payload.operation === 'read' && payload.path) {
+                        const content = await Filesystem.readFile({ path: payload.path });
+                        if (this.sendBridgeResult) await this.sendBridgeResult('filesystem', content);
+                    }
+                    break;
+                case 'share':
+                    if (Share && Share.share) {
+                        await Share.share({ title: payload.title, text: payload.text, url: payload.url });
+                    }
+                    break;
+                case 'haptics':
+                    if (Haptics && Haptics.impact) {
+                        await Haptics.impact({ style: payload.style || 'LIGHT' });
+                    } else if (Haptics && Haptics.vibrate) {
+                        await Haptics.vibrate({ duration: 50 });
+                    }
+                    break;
+                case 'clipboard':
+                    if (Clipboard && Clipboard.write) {
+                        await Clipboard.write({ string: payload.text || '' });
+                    }
+                    break;
+                case 'statusbar':
+                    if (StatusBar && StatusBar.setBackgroundColor) {
+                        await StatusBar.setBackgroundColor({ color: payload.color || '#000000' });
+                    }
+                    break;
+                case 'screenreader':
+                    if (ScreenReader && ScreenReader.speak) {
+                        await ScreenReader.speak({ value: payload.text || '' });
+                    }
+                    break;
+                case 'textzoom':
+                    if (TextZoom && TextZoom.set) {
+                        await TextZoom.set({ value: payload.scale || 1.0 });
+                    }
+                    break;
+                case 'calendar':
+                    if (Calendar && Calendar.createEvent) {
+                        await Calendar.createEvent({
+                            title: payload.title || 'Event',
+                            startDate: payload.startDate || Date.now(),
+                            endDate: payload.endDate || Date.now() + 3600000,
+                            notes: payload.notes || ''
+                        });
+                    }
+                    break;
+                default:
+                    break;
+            }
+        } catch(e) {}
+    },
+
+    async sendBridgeResult(actionType, result) {
+        if (!this.config || !this.config.bridge || !this.config.bridge.enabled) return;
+        const base = this.config.bridge.url;
+        try {
+            const headers = { 'Content-Type': 'application/json' };
+            if (this.authToken) headers['Authorization'] = 'Bearer ' + this.authToken;
+            await fetch(base + '/api/app/action-result', {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({ action: actionType, result })
+            });
+        } catch(e) {}
+    },
+
+    async handleEvent(event) {
+        if (!event) return;
+        if (event.type === 'notification') {
+            await this.showNotification(event.payload);
+        } else if (event.type === 'route') {
+            if (event.payload && event.payload.url) {
+                window.location.href = event.payload.url;
+            }
+        } else if (event.type === 'plugin') {
+            await this.handlePluginAction(event.payload);
+        }
+    },
+
+    async processActions(actions) {
+        if (!actions || !Array.isArray(actions)) return;
+        for (const action of actions) {
+            if (action && action.type) {
+                await this.handlePluginAction(action);
+            }
+        }
+    },
+
+    async startWebSocket() {
+        if (!this.config || !this.config.bridge || !this.config.bridge.enabled) return;
+        const mode = this.config.bridge.notification_mode || 'polling';
+        if (mode !== 'websocket') return;
+        const url = this.config.bridge.url.replace(/^http/, 'ws') + '/api/app/ws';
+        try {
+            this.socket = new WebSocket(url);
+            this.socket.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.notifications) {
+                        data.notifications.forEach(n => this.showNotification(n));
+                    }
+                } catch(e) {}
+            };
+            this.socket.onclose = () => {
+                setTimeout(() => this.startWebSocket(), 5000);
+            };
+        } catch(e) {}
+    },
+
+    async startPolling() {
+        if (!this.config || !this.config.bridge || !this.config.bridge.enabled) return;
+        const mode = this.config.bridge.notification_mode || 'polling';
+        if (mode !== 'polling') return;
+        const interval = parseInt(this.config.bridge.poll_interval || '30', 10) * 1000;
+
+        const tick = async () => {
+            try {
+                const data = await this.fetchUserData();
+                if (data && data.notifications) {
+                    for (const notification of data.notifications) {
+                        await this.showNotification(notification);
+                    }
+                }
+                if (data && data.actions) {
+                    await this.processActions(data.actions);
+                }
+            } catch(e) {}
+        };
+
+        await tick();
+        setInterval(tick, interval);
+    }
+};
+
+window.addEventListener('load', async () => {
+    if (window.AppBridge) {
+        await window.AppBridge.init();
+        await window.AppBridge.flushOfflineNotifications();
+        await window.AppBridge.startPolling();
+        await window.AppBridge.startWebSocket();
+    }
+});
+`
+}
+
+// GenerateSplashPNG creates a native splash image with background color and centered logo.
+func (g *Generator) GenerateSplashPNG() []byte {
+    const size = 1024
+    bgColor := g.getSplashBackground()
+
+    // Parse background color
+    c := color.RGBA{R: 17, G: 24, B: 39, A: 255}
+    if len(bgColor) == 7 && bgColor[0] == '#' {
+        fmt.Sscanf(bgColor[1:], "%02x%02x%02x", &c.R, &c.G, &c.B)
+    }
+
+    dst := image.NewRGBA(image.Rect(0, 0, size, size))
+    // Fill background
+    draw.Draw(dst, dst.Bounds(), &image.Uniform{c}, image.Point{}, draw.Src)
+
+    // Decode logo
+    logoBytes := g.DecodeLauncherIcon()
+    if logoBytes != nil {
+        logoImg, _, err := image.Decode(bytes.NewReader(logoBytes))
+        if err == nil {
+            // Center logo with padding
+            logoSize := int(float64(size) * 0.25)
+            target := image.Rect((size-logoSize)/2, (size-logoSize)/2, (size+logoSize)/2, (size+logoSize)/2)
+            xdraw.CatmullRom.Scale(dst, target, logoImg, logoImg.Bounds(), xdraw.Over, nil)
+        }
+
+            if (!this._preferencesPlugin) {
+                this._preferencesPlugin = window.Capacitor.Plugins.Preferences;
+            }
+            return this._preferencesPlugin;
+        }
+        
+            if (!this._devicePlugin) {
+                this._devicePlugin = window.Capacitor.Plugins.Device;
+            }
+            return this._devicePlugin;
+        }
+        
+            try {
+                if (Device && Device.getId) {
+                    const info = await Device.getId();
+                    this.deviceId = info && (info.identifier || info.uuid) || null;
+                    
+                    // Save it lazily only if we got it
+                    if (this.deviceId) {
+                        try {
+                            await Prefs.set({ key: 'bridge_device_id', value: String(this.deviceId) });
+                        } catch (e) {
+                            console.warn('Could not save device ID:', e);
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn('Device ID not available:', e);
+                this.deviceId = null;
+            }
+        }
+    }
+
+    var buf bytes.Buffer
+    png.Encode(&buf, dst)
+    return buf.Bytes()
+}

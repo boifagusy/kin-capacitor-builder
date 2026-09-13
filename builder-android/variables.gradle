@@ -1,0 +1,8 @@
+ext {
+    minSdkVersion = 24
+    compileSdkVersion = 36
+    targetSdkVersion = 36
+    appCompatVersion = "1.7.1"
+    coreVersion = "1.13.1"
+    junitVersion = "4.13.2"
+}

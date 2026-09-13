@@ -1,0 +1,20 @@
+{{define "test_alpine"}}
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="/static/vendor/alpine.min.js"></script>
+    <script src="/static/js/wizard.js"></script>
+</head>
+<body>
+    <h3>Alpine Test</h3>
+    <div x-data="navScreen('{}')">
+        <button @click="style = 'bottom'">Tap Alpine Button</button>
+        <p x-text="style || 'not set'"></p>
+    </div>
+    <hr>
+    <h3>Vanilla JS Test</h3>
+    <button onclick="document.getElementById('jsmsg').innerText='JS works!'">Tap Vanilla JS</button>
+    <p id="jsmsg">Not clicked</p>
+</body>
+</html>
+{{end}}

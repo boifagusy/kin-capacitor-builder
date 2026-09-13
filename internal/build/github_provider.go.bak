@@ -1,0 +1,498 @@
+package build
+
+import (
+    "archive/zip"
+    "bytes"
+    "context"
+    "crypto/sha256"
+    "encoding/hex"
+    "fmt"
+    "io"
+    "log"
+    "strings"
+    "time"
+
+    "local-apk-builder/internal/build/github"
+    "local-apk-builder/internal/database"
+    "local-apk-builder/internal/generator"
+)
+
+const workflowYAML = `name: Build Android APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_id:
+        description: 'Build ID'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Debug APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Write build payload to file
+        env:
+          BUILD_ID: ${{ github.event.inputs.build_id }}
+        run: |
+          echo "Build ID: $BUILD_ID"
+          echo "$BUILD_ID" > /tmp/build_id.txt
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies and add Android platform
+        run: |
+          set -e
+          echo "Step 1: Installing npm dependencies..."
+          npm install --legacy-peer-deps
+          echo "npm install succeeded"
+          
+          echo "Step 2: Checking for android directory..."
+          if [ ! -d android ]; then
+            echo "android/ directory not found. Running: npx cap add android"
+            npx cap add android || { echo "ERROR: npx cap add android failed"; exit 1; }
+            echo "Successfully created android/ directory"
+          else
+            echo "android/ directory already exists"
+          fi
+          
+          echo "Step 3: Running npx cap sync android..."
+          npx cap sync android || { echo "ERROR: npx cap sync android failed"; exit 1; }
+          echo "Android platform setup complete"
+
+          echo "Injecting native navigation files..."
+          mkdir -p android/app/src/main/assets
+          cp android-custom/app_config.json android/app/src/main/assets/app_config.json
+          # MainActivity left as Capacitor default - no replacement
+
+          echo "Generating launcher icons with @capacitor/assets..."
+          npx capacitor-assets generate --android
+
+          if [ -f android-custom/google-services.json ]; then
+            cp android-custom/google-services.json android/app/google-services.json
+          fi
+
+          if [ -f android-custom/splash.png ]; then
+            for d in drawable drawable-port-mdpi drawable-port-hdpi drawable-port-xhdpi drawable-port-xxhdpi drawable-port-xxxhdpi drawable-land-mdpi drawable-land-hdpi drawable-land-xhdpi drawable-land-xxhdpi drawable-land-xxxhdpi; do
+              mkdir -p android/app/src/main/res/$d
+              cp android-custom/splash.png android/app/src/main/res/$d/splash.png
+            done
+          fi
+
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Copy release keystore
+        run: |
+          if [ -f android-custom/release.keystore ]; then
+            cp android-custom/release.keystore android/app/release.keystore
+          fi
+
+      - name: Configure release signing
+        working-directory: android
+        run: |
+          cat >> app/build.gradle << 'GRADLE_EOF'
+
+          android {
+              signingConfigs {
+                  release {
+                      storeFile file('release.keystore')
+                      storePassword 'localapkbuilder123'
+                      keyAlias 'localapkbuilder'
+                      keyPassword 'localapkbuilder123'
+                  }
+              }
+              buildTypes {
+                  release {
+                      signingConfig signingConfigs.release
+                  }
+              }
+          }
+          GRADLE_EOF
+
+      - name: Build release APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+
+      - name: Verify APK exists
+        working-directory: android
+        run: |
+          APK_PATH="app/build/outputs/apk/release/app-release.apk"
+          if [ -f "$APK_PATH" ]; then
+            echo "APK exists: $APK_PATH"
+            ls -la "$APK_PATH"
+            sha256sum "$APK_PATH"
+          else
+            echo "APK not found"
+            exit 1
+          fi
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: local-apk-builder-debug
+          path: android/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+`
+const workflowAABYAML = `name: Build Android AAB
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_id:
+        description: 'Build ID'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Release AAB
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Write build payload to file
+        env:
+          BUILD_ID: ${{ github.event.inputs.build_id }}
+        run: |
+          echo "Build ID: $BUILD_ID"
+          echo "$BUILD_ID" > /tmp/build_id.txt
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies and add Android platform
+        run: |
+          set -e
+          echo "Step 1: Installing npm dependencies..."
+          npm install --legacy-peer-deps
+          echo "npm install succeeded"
+
+          echo "Step 2: Checking for android directory..."
+          if [ ! -d android ]; then
+            echo "android/ directory not found. Running: npx cap add android"
+            npx cap add android || { echo "ERROR: npx cap add android failed"; exit 1; }
+            echo "Successfully created android/ directory"
+          else
+            echo "android/ directory already exists"
+          fi
+
+          echo "Step 3: Running npx cap sync android..."
+          npx cap sync android || { echo "ERROR: npx cap sync android failed"; exit 1; }
+          echo "Android platform setup complete"
+
+          echo "Injecting native navigation files..."
+          mkdir -p android/app/src/main/assets
+          cp android-custom/app_config.json android/app/src/main/assets/app_config.json
+          # MainActivity left as Capacitor default - no replacement
+
+          echo "Generating launcher icons with @capacitor/assets..."
+          npx capacitor-assets generate --android
+
+          if [ -f android-custom/google-services.json ]; then
+            cp android-custom/google-services.json android/app/google-services.json
+          fi
+
+          if [ -f android-custom/splash.png ]; then
+            for d in drawable drawable-port-mdpi drawable-port-hdpi drawable-port-xhdpi drawable-port-xxhdpi drawable-port-xxxhdpi drawable-land-mdpi drawable-land-hdpi drawable-land-xhdpi drawable-land-xxhdpi drawable-land-xxxhdpi; do
+              mkdir -p android/app/src/main/res/$d
+              cp android-custom/splash.png android/app/src/main/res/$d/splash.png
+            done
+          fi
+
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Build release AAB
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew bundleRelease --no-daemon
+
+      - name: Verify AAB exists
+        working-directory: android
+        run: |
+          AAB_PATH="app/build/outputs/bundle/release/app-release.aab"
+          if [ -f "$AAB_PATH" ]; then
+            echo "AAB exists: $AAB_PATH"
+            ls -la "$AAB_PATH"
+            sha256sum "$AAB_PATH"
+          else
+            echo "AAB not found"
+            exit 1
+          fi
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: local-apk-builder-aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+`
+
+
+
+type GitHubActionsProvider struct {
+    client          *github.Client
+    workflowID      string
+    artifactName    string
+    aabArtifactName string
+}
+
+func NewGitHubActionsProvider(token, repo, workflowID, artifactName string) *GitHubActionsProvider {
+    return &GitHubActionsProvider{
+        client:          github.NewClient(token, repo),
+        workflowID:      workflowID,
+        artifactName:    artifactName,
+        aabArtifactName: "local-apk-builder-aab",
+    }
+}
+
+func (p *GitHubActionsProvider) Build(ctx context.Context, build *database.Build, cfg BuildConfig) (*BuildResult, error) {
+    if build.ProviderRunID != "" {
+        return &BuildResult{ProviderName: "github", Status: StatusSubmitted, ProviderRunID: build.ProviderRunID}, nil
+    }
+
+    // 1. Generate project files
+    project, err := database.GetProject(build.ProjectID)
+    if err != nil || project == nil {
+        return nil, fmt.Errorf("project not found")
+    }
+    gen := generator.NewGenerator(project)
+    generated, err := gen.Generate()
+    if err != nil {
+        return nil, err
+    }
+
+    workflowFile := workflowYAML
+    if build.BuildType == "aab" {
+        workflowFile = workflowAABYAML
+    }
+
+    files := map[string]string{
+        "capacitor.config.json":                           generated.CapacitorConfig,
+        "package.json":                                    generated.PackageJSON,
+        "www/index.html":                                  generated.WebIndex,
+        "www/app_bridge.js":                               generated.AppBridgeJS,
+        ".github/workflows/build-apk.yml":                 workflowFile,
+        "android-custom/app_config.json":                  generated.AppConfigJSON,
+        "www/app_config.json":                             generated.AppConfigJSON,
+        "android-custom/google-services.json":             string(generated.GoogleServicesJSON),
+        "android-custom/release.keystore":                  generated.ReleaseKeystore,
+    }
+
+    // 2. Create repo and push files
+    repoFull, err := p.PushProject(ctx, build.ProjectID, files)
+    if err != nil {
+        return nil, err
+    }
+
+    // Update client repo to the new repo
+    p.client.Repo = repoFull
+
+    // 3. Dispatch workflow
+    // Only pass build_id to avoid "inputs are too large" error
+    inputs := map[string]interface{}{
+        "build_id": fmt.Sprintf("%d", build.ID),
+    }
+    log.Printf("DEBUG: Starting 90s sleep before dispatch")
+    time.Sleep(90 * time.Second)
+    log.Printf("DEBUG: Sleep complete, dispatching workflow")
+    if err := p.client.DispatchWorkflow(ctx, p.workflowID, inputs); err != nil {
+        log.Printf("DEBUG: Dispatch failed: %v", err)
+        return nil, err
+    }
+    log.Printf("DEBUG: Dispatch succeeded")
+
+    // 4. Find run ID
+    runID, err := p.findRunByBuildID(ctx, build.ID)
+    if err != nil {
+        return &BuildResult{ProviderName: "github", Status: StatusSubmitted}, nil
+    }
+
+    return &BuildResult{
+        ProviderName: "github",
+        Status:       StatusSubmitted,
+        ProviderRunID: runID,
+    }, nil
+}
+
+func (p *GitHubActionsProvider) findRunByBuildID(ctx context.Context, buildID int64) (string, error) {
+    runs, err := p.client.ListWorkflowRuns(ctx, p.workflowID)
+    if err != nil {
+        return "", err
+    }
+    for _, run := range runs {
+        // Check if the run's payload contains our build_id
+        // In real GitHub API, inputs are not directly accessible from run object.
+        // We can use run name or correlation by created_at.
+        // For now, we return the latest run's ID as best effort.
+        // A more robust method would use a unique workflow input and fetch runs.
+        id, _ := run["id"].(float64)
+        if id > 0 {
+            return fmt.Sprintf("%.0f", id), nil
+        }
+    }
+    return "", fmt.Errorf("no run found")
+}
+
+func (p *GitHubActionsProvider) GetStatus(ctx context.Context, providerRunID string) (*BuildResult, error) {
+    run, err := p.client.GetRun(ctx, providerRunID)
+    if err != nil {
+        return nil, err
+    }
+    status := runStatusToString(run)
+    return &BuildResult{
+        ProviderName: "github",
+        Status:       status,
+    }, nil
+}
+
+func (p *GitHubActionsProvider) DownloadArtifact(ctx context.Context, providerRunID string) ([]byte, error) {
+    artifacts, err := p.client.ListArtifacts(ctx, providerRunID)
+    if err != nil {
+        return nil, err
+    }
+    targetName := p.artifactName
+    for _, art := range artifacts {
+        name, _ := art["name"].(string)
+        if name == p.aabArtifactName {
+            targetName = p.aabArtifactName
+        }
+        if name == targetName {
+            url, _ := art["archive_download_url"].(string)
+            if url == "" {
+                return nil, fmt.Errorf("artifact has no download URL")
+            }
+            return p.client.DownloadArtifact(ctx, url)
+        }
+    }
+    return nil, fmt.Errorf("artifact %s not found", p.artifactName)
+}
+
+// ExtractAPK extracts APK from downloaded ZIP artifact, returns path, size, hash
+func (p *GitHubActionsProvider) ExtractAPK(zipData []byte) (string, int64, string, error) {
+    reader, err := zip.NewReader(bytes.NewReader(zipData), int64(len(zipData)))
+    if err != nil {
+        return "", 0, "", fmt.Errorf("invalid ZIP: %w", err)
+    }
+
+    var apkFile *zip.File
+    for _, f := range reader.File {
+        if (strings.HasSuffix(f.Name, ".apk") || strings.HasSuffix(f.Name, ".aab")) && !strings.HasPrefix(f.Name, "__MACOSX/") {
+            apkFile = f
+            break
+        }
+    }
+    if apkFile == nil {
+        return "", 0, "", fmt.Errorf("no APK found in artifact")
+    }
+
+    rc, err := apkFile.Open()
+    if err != nil {
+        return "", 0, "", err
+    }
+    defer rc.Close()
+
+    apkData, err := io.ReadAll(rc)
+    if err != nil {
+        return "", 0, "", err
+    }
+    if len(apkData) == 0 {
+        return "", 0, "", fmt.Errorf("APK is empty")
+    }
+
+    hash := sha256.Sum256(apkData)
+    return string(apkData), int64(len(apkData)), hex.EncodeToString(hash[:]), nil
+}
+
+func runStatusToString(run map[string]interface{}) string {
+    status, _ := run["status"].(string)
+    conclusion, _ := run["conclusion"].(string)
+    switch status {
+    case "queued":
+        return StatusQueued
+    case "in_progress":
+        return StatusBuilding
+    case "completed":
+        switch conclusion {
+        case "success":
+            return StatusSuccess
+        case "failure", "cancelled", "timed_out":
+            return StatusFailed
+        }
+    }
+    return StatusSubmitted
+}
+
+
+// PushProject creates a repo (or uses existing) and pushes generated files
+func (p *GitHubActionsProvider) PushProject(ctx context.Context, projectID int64, files map[string]string) (string, error) {
+    // Use unique repo name with timestamp to avoid conflicts
+    repoName := fmt.Sprintf("app-builder-%d-%d", projectID, time.Now().Unix())
+    repo, err := p.client.CreateRepo(ctx, repoName, "Generated by Local APK Builder")
+    if err != nil {
+        // If repo exists, try to use existing
+        if strings.Contains(err.Error(), "name already exists") {
+            return "", fmt.Errorf("repo already exists, using existing not yet implemented")
+        }
+        return "", err
+    }
+    owner := ""
+    if ownerVal, ok := repo["owner"].(map[string]interface{}); ok {
+        if login, ok := ownerVal["login"].(string); ok {
+            owner = login
+        }
+    }
+    if owner == "" {
+        // Fallback: use current token's username from repo full_name
+        if fullName, ok := repo["full_name"].(string); ok {
+            parts := strings.SplitN(fullName, "/", 2)
+            if len(parts) == 2 {
+                owner = parts[0]
+            }
+        }
+    }
+    repoFull := fmt.Sprintf("%s/%s", owner, repoName)
+
+    for path, content := range files {
+        log.Printf("DEBUG: Pushing file: %s (size: %d)", path, len(content))
+        if err := p.client.PushFile(ctx, repoFull, path, content, "Generate project"); err != nil {
+            log.Printf("DEBUG: Push failed for %s: %v", path, err)
+            return repoFull, err
+        }
+    }
+    return repoFull, nil
+}

@@ -1,0 +1,119 @@
+name: Build Builder APK
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'builder-android/**'
+      - 'mobile/androidlib/**'
+      - '.github/workflows/build-builder-apk.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  bind-go:
+    name: Bind Go library to AAR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go 1.27
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.27'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android NDK
+        run: |
+          sdkmanager --install "ndk;26.1.10909125"
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/26.1.10909125" >> $GITHUB_ENV
+
+      - name: Install gomobile and gobind
+        run: |
+          go install golang.org/x/mobile/cmd/gomobile@latest
+          go install golang.org/x/mobile/cmd/gobind@latest
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+
+      - name: Initialize gomobile
+        run: gomobile init
+
+      - name: Bind androidlib
+        run: |
+          mkdir -p builder-android/app/libs
+          gomobile bind \
+            -target=android/arm64,android/arm \
+            -androidapi 21 \
+            -o builder-android/app/libs/androidlib.aar \
+            ./mobile/androidlib
+
+      - name: Verify AAR exists
+        run: |
+          AAR=builder-android/app/libs/androidlib.aar
+          test -f "$AAR" || (echo "AAR not produced" && exit 1)
+          ls -la "$AAR"
+          sha256sum "$AAR"
+
+      - name: Upload AAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: androidlib-aar
+          path: builder-android/app/libs/androidlib.aar
+          if-no-files-found: error
+
+  build-apk:
+    name: Build Builder APK
+    needs: bind-go
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Download AAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: androidlib-aar
+          path: builder-android/app/libs/
+
+      - name: Verify AAR is in place
+        run: |
+          ls -la builder-android/app/libs/
+          test -f builder-android/app/libs/androidlib.aar || (echo "AAR missing" && exit 1)
+
+      - name: Build debug APK
+        working-directory: builder-android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Verify APK exists
+        working-directory: builder-android
+        run: |
+          APK_PATH="app/build/outputs/apk/debug/app-debug.apk"
+          if [ -f "$APK_PATH" ]; then
+            echo "APK exists: $APK_PATH"
+            ls -la "$APK_PATH"
+            sha256sum "$APK_PATH"
+          else
+            echo "APK not found"
+            exit 1
+          fi
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: builder-apk-debug
+          path: builder-android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error

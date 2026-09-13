@@ -1,0 +1,35 @@
+{{define "progress"}}
+<div class="progress-section">
+    <div class="progress-steps">
+        <div class="progress-step">
+            <div class="step-circle {{if ge .Step 1}}active{{end}}">{{if gt .Step 1}}✓{{else}}1{{end}}</div>
+            <span class="step-label {{if ge .Step 1}}active{{end}}">URL</span>
+        </div>
+        <div class="progress-line {{if ge .Step 2}}completed{{end}}"></div>
+        <div class="progress-step">
+            <div class="step-circle {{if ge .Step 2}}active{{end}}">{{if gt .Step 2}}✓{{else}}2{{end}}</div>
+            <span class="step-label {{if ge .Step 2}}active{{end}}">Brand</span>
+        </div>
+        <div class="progress-line {{if ge .Step 3}}completed{{end}}"></div>
+        <div class="progress-step">
+            <div class="step-circle {{if ge .Step 3}}active{{end}}">{{if gt .Step 3}}✓{{else}}3{{end}}</div>
+            <span class="step-label {{if ge .Step 3}}active{{end}}">Splash</span>
+        </div>
+        <div class="progress-line {{if ge .Step 4}}completed{{end}}"></div>
+        <div class="progress-step">
+            <div class="step-circle {{if ge .Step 4}}active{{end}}">{{if gt .Step 4}}✓{{else}}4{{end}}</div>
+            <span class="step-label {{if ge .Step 4}}active{{end}}">Plugins</span>
+        </div>
+        <div class="progress-line {{if ge .Step 5}}completed{{end}}"></div>
+        <div class="progress-step">
+            <div class="step-circle {{if ge .Step 5}}active{{end}}">{{if gt .Step 5}}✓{{else}}5{{end}}</div>
+            <span class="step-label {{if ge .Step 5}}active{{end}}">Nav</span>
+        </div>
+        <div class="progress-line {{if ge .Step 6}}completed{{end}}"></div>
+        <div class="progress-step">
+            <div class="step-circle {{if ge .Step 6}}active{{end}}">{{if gt .Step 6}}✓{{else}}6{{end}}</div>
+            <span class="step-label {{if ge .Step 6}}active{{end}}">Review</span>
+        </div>
+    </div>
+</div>
+{{end}}

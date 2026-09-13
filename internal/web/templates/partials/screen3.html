@@ -1,0 +1,81 @@
+{{define "screen3"}}
+<div class="step-enter" x-data="splashScreen('{{.SplashBg}}', {{.ShowLogo}}, '{{.LoadingText}}', {{.Duration}}, '{{.LogoPath}}')">
+    <h2 class="screen-title">Splash Screen</h2>
+    <p class="screen-description">Customize your app's loading screen</p>
+
+    <form hx-post="/wizard/3?project_id={{.ProjectID}}"
+          hx-target="#wizard-content"
+          hx-swap="innerHTML"
+          style="flex:1;display:flex;flex-direction:column;overflow-y:auto;">
+
+        <!-- Background color -->
+        <div class="form-group">
+            <label class="form-label">Background Color</label>
+            <div class="color-picker-group">
+                <input type="color" id="splash_bg" name="splash_bg" x-model="bgColor" class="color-input-native">
+                <input type="text" id="splash_bg_text" x-model="bgColor" class="color-input-text" placeholder="#6366f1" maxlength="7">
+                <div class="color-preview" :style="'background-color: ' + bgColor"></div>
+            </div>
+            <div class="color-swatches">
+                <div class="color-swatch" style="background:#6366f1" @click="bgColor='#6366f1'"></div>
+                <div class="color-swatch" style="background:#10b981" @click="bgColor='#10b981'"></div>
+                <div class="color-swatch" style="background:#ef4444" @click="bgColor='#ef4444'"></div>
+                <div class="color-swatch" style="background:#f59e0b" @click="bgColor='#f59e0b'"></div>
+                <div class="color-swatch" style="background:#8b5cf6" @click="bgColor='#8b5cf6'"></div>
+                <div class="color-swatch" style="background:#ec4899" @click="bgColor='#ec4899'"></div>
+            </div>
+        </div>
+
+        <!-- Show logo toggle -->
+        <div class="form-group">
+            <label class="form-label">Show Logo</label>
+            <label class="switch">
+                <input type="checkbox" name="show_logo" x-model="showLogo">
+                <span class="switch-slider"></span>
+            </label>
+        </div>
+
+        <!-- Loading text -->
+        <div class="form-group">
+            <label class="form-label">Loading Text</label>
+            <input type="text" name="loading_text" x-model="loadingText" class="form-input">
+        </div>
+
+        <!-- Duration -->
+        <div class="form-group">
+            <label class="form-label">Duration</label>
+            <div class="duration-chips">
+                <button type="button" class="chip" :class="duration===1000?'chip-active':''" @click="duration=1000">1s</button>
+                <button type="button" class="chip" :class="duration===1500?'chip-active':''" @click="duration=1500">1.5s</button>
+                <button type="button" class="chip" :class="duration===2000?'chip-active':''" @click="duration=2000">2s</button>
+                <button type="button" class="chip" :class="duration===3000?'chip-active':''" @click="duration=3000">3s</button>
+            </div>
+            <input type="range" name="duration" min="500" max="5000" step="100" x-model="duration" class="duration-slider">
+            <span class="form-hint" x-text="duration + ' ms'"></span>
+        </div>
+
+        <!-- Live phone preview -->
+        <div class="splash-phone-preview" :style="'background-color:' + bgColor">
+            <div class="splash-phone-content">
+                <div class="splash-phone-logo" x-show="showLogo">
+                    <img x-show="logoPath" :src="logoPath" alt="Logo" style="width:48px;height:48px;border-radius:12px;object-fit:cover;">
+                    <span x-show="!logoPath">📱</span>
+                </div>
+                <div class="splash-phone-name">{{.Project.AppName}}</div>
+                <div class="splash-phone-loading">
+                    <span x-text="loadingText"></span>
+                    <div class="spinner-dots"><span>.</span><span>.</span><span>.</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="button"
+                    hx-get="/wizard/2?project_id={{.ProjectID}}"
+                    hx-target="#wizard-content"
+                    class="btn btn-secondary">← Back</button>
+            <button type="submit" class="btn btn-primary">Next Step →</button>
+        </div>
+    </form>
+</div>
+{{end}}

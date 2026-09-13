@@ -1,0 +1,62 @@
+{{define "dashboard"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>My Apps</title>
+    <script src="/static/vendor/htmx.min.js"></script>
+    <script src="/static/vendor/alpine.min.js" defer></script>
+    <link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body style="background: #f5f5f7; min-height: 100vh; margin: 0; font-family: -apple-system, sans-serif;">
+    <header class="app-header">
+        <div class="header-content">
+            <div class="app-icon">📱</div>
+            <span class="app-title">My Apps</span>
+            <span class="app-count">{{.Count}}</span>
+            <a href="/settings/github" style="margin-left:auto;color:#6366f1;text-decoration:none;font-size:1.2rem;" aria-label="GitHub Settings">⚙️</a>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <div class="dashboard-container">
+            {{if .GitHubUsername}}
+            <div style="background:white;border-radius:0.75rem;padding:0.75rem 1rem;margin-bottom:1rem;box-shadow:0 1px 3px rgba(0,0,0,0.1);text-align:center;color:#16a34a;font-weight:600;">
+                🔗 Connected as @{{.GitHubUsername}}
+            </div>
+            {{else}}
+            <a href="/auth/github" style="display:block;background:white;border-radius:0.75rem;padding:0.75rem 1rem;margin-bottom:1rem;box-shadow:0 1px 3px rgba(0,0,0,0.1);text-align:center;color:#6366f1;font-weight:600;text-decoration:none;">🔗 Connect GitHub</a>
+            {{end}}
+            {{if eq .Count 0}}
+            <div class="empty-state">
+                <div class="empty-icon">📱</div>
+                <h2>No apps yet</h2>
+                <p>Create your first app from a website</p>
+                <a href="/wizard/1" class="btn btn-primary">Create App</a>
+            </div>
+            {{else}}
+            <div class="project-list">
+                {{range .Projects}}
+                <a href="/projects/{{.ID}}" class="project-card">
+                    <div class="project-icon" style="background-color: {{.PrimaryColor}};">
+                        {{if .AppName}}{{slice .AppName 0 1}}{{else}}📱{{end}}
+                    </div>
+                    <div class="project-info">
+                        <div class="project-name">{{.AppName}}</div>
+                        <div class="project-url">{{.URL}}</div>
+                    </div>
+                    <span class="project-chevron">›</span>
+                </a>
+                {{end}}
+            </div>
+            {{end}}
+        </div>
+    </main>
+
+    <a href="/wizard/1" class="fab" aria-label="Create app">+</a>
+</body>
+</html>
+{{end}}

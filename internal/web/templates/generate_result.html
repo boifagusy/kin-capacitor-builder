@@ -1,0 +1,44 @@
+{{define "generate_result"}}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generated Project</title>
+    <style>
+        body { font-family: monospace; padding: 1rem; background: #1a1a1a; color: #f0f0f0; }
+        pre { background: #2a2a2a; padding: 1rem; border-radius: 8px; overflow-x: auto; }
+        h2 { color: #6366f1; }
+        .section { margin-bottom: 1rem; }
+    </style>
+</head>
+<body>
+    <h2>Generated Project Files</h2>
+    
+    <div class="section">
+        <h3>capacitor.config.json</h3>
+        <pre>{{.CapacitorConfig}}</pre>
+    </div>
+    
+    <div class="section">
+        <h3>package.json</h3>
+        <pre>{{.PackageJSON}}</pre>
+    </div>
+    
+    <div class="section">
+        <h3>www/index.html</h3>
+        <pre>{{.WebIndex}}</pre>
+    </div>
+    
+    <div class="section">
+        <h3>AndroidManifest.xml</h3>
+        <pre>{{.AndroidManifest}}</pre>
+    </div>
+    
+    <div class="section">
+        <h3>Info.plist</h3>
+        <pre>{{.IOSInfoPlist}}</pre>
+    </div>
+</body>
+</html>
+{{end}}

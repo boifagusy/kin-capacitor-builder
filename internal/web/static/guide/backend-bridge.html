@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backend Bridge Integration Guide</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --gray-900: #111827;
+            --gray-700: #374151;
+            --gray-500: #6b7280;
+            --gray-100: #f3f4f6;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f8fafc;
+            color: var(--gray-900);
+            line-height: 1.6;
+            padding: 2rem 1rem;
+        }
+        .container { max-width: 720px; margin: 0 auto; }
+        h1 { font-size: 1.8rem; margin-bottom: 0.5rem; }
+        h2 { font-size: 1.2rem; margin-top: 2rem; margin-bottom: 0.5rem; color: var(--primary); }
+        p { margin-bottom: 1rem; color: var(--gray-700); }
+        pre {
+            background: var(--gray-100);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+        }
+        code {
+            background: var(--gray-100);
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.25rem;
+            font-size: 0.85rem;
+        }
+        .copy-btn {
+            display: inline-block;
+            margin-left: 0.5rem;
+            padding: 0.2rem 0.5rem;
+            background: #eef2ff;
+            color: var(--primary);
+            border: none;
+            border-radius: 0.25rem;
+            font-size: 0.7rem;
+            cursor: pointer;
+            vertical-align: middle;
+        }
+        .copy-btn:hover { background: #e0e7ff; }
+        .note {
+            background: #eef2ff;
+            border-left: 4px solid var(--primary);
+            padding: 0.75rem 1rem;
+            border-radius: 0.25rem;
+            margin-bottom: 1rem;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+        }
+        th, td {
+            text-align: left;
+            padding: 0.6rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        th { background: var(--gray-100); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔌 Backend Bridge Integration Guide</h1>
+        <button id="copyGuideBtn" style="display:block;margin:0 0 1rem 0;padding:0.6rem 1.2rem;background:var(--primary);color:white;border:none;border-radius:0.5rem;font-size:0.85rem;font-weight:600;cursor:pointer;">📋 Copy Full Guide</button>
+        <p>Connect your backend to the generated app for user-specific data and notifications.</p>
+
+        <h2>1. How It Works</h2>
+        <p>The generated app includes an <code>AppBridge</code> that communicates with your backend using simple HTTPS JSON.</p>
+        <p>Your backend only needs to expose one endpoint. The app polls this endpoint and processes the JSON response.</p>
+
+        <h2>2. Configuration</h2>
+        <p>When creating an app in the builder, fill in the <strong>Backend Bridge</strong> section:</p>
+        <ul>
+            <li><strong>Backend URL</strong> — e.g., <code>https://api.example.com</code></li>
+            <li><strong>Auth Mode</strong> — none, cookie, or token</li>
+            <li><strong>Notification Mode</strong> — polling, websocket, or push</li>
+            <li><strong>Polling Interval</strong> — seconds between requests</li>
+        </ul>
+
+        <h2>3. Endpoint Contract</h2>
+        <p>The app calls:</p>
+        <pre>GET {backend_url}/api/app
+Authorization: Bearer {token} (if token mode)</pre>
+
+        <h3>Response Format</h3>
+        <pre>{
+  "version": 1,
+  "user": {
+    "id": "user_123",
+    "token": "jwt_token_here"
+  },
+  "notifications": [
+    {
+      "id": "msg_001",
+      "title": "Welcome",
+      "body": "You have a new message",
+      "data": {
+        "url": "/dashboard"
+      },
+      "sent_at": "2026-08-29T12:00:00Z"
+    }
+  ]
+}</pre>
+
+        <h2>4. Authentication</h2>
+        <h3>Mode 1: None (Device Only)</h3>
+        <p>The app uses a device ID stored locally. No login required.</p>
+
+        <h3>Mode 2: Existing Login (Cookie/Session)</h3>
+        <p>The app reuses the website's login. Your backend can set a session cookie, and the bridge automatically sends it.</p>
+        <p>After login, call this from your frontend:</p>
+        <pre>window.AppBridge.onUserLogin({ id: "user_123", token: "jwt_token" });</pre>
+
+        <h3>Mode 3: Token (JWT)</h3>
+        <p>Your backend issues a JWT, and the app stores it. Send it in the Authorization header.</p>
+
+        <h2>5. Notifications</h2>
+        <p>Each notification object supports:</p>
+        <table>
+            <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+            <tr><td><code>id</code></td><td>string</td><td>Unique ID</td></tr>
+            <tr><td><code>title</code></td><td>string</td><td>Notification title</td></tr>
+            <tr><td><code>body</code></td><td>string</td><td>Notification body</td></tr>
+            <tr><td><code>data</code></td><td>object</td><td>Optional deep link data</td></tr>
+        </table>
+
+        <h2>6. Plugin Actions</h2>
+        <p>The backend can also trigger device plugins by sending an <code>actions</code> array in the response.</p>
+        <p>Example:</p>
+        <pre>{
+  "actions": [
+    { "type": "share", "payload": { "text": "Hello", "url": "https://example.com" } },
+    { "type": "haptics", "payload": { "style": "impact" } },
+    { "type": "clipboard", "payload": { "text": "Copy this code" } }
+  ]
+}</pre>
+        <p>Supported action types:</p>
+        <table>
+            <tr><th>Action</th><th>Plugin</th><th>Description</th></tr>
+            <tr><td><code>camera</code></td><td>Camera</td><td>Open camera</td></tr>
+            <tr><td><code>geolocation</code></td><td>Geolocation</td><td>Get GPS location</td></tr>
+            <tr><td><code>filesystem</code></td><td>Filesystem</td><td>Read a file</td></tr>
+            <tr><td><code>share</code></td><td>Share</td><td>Open share sheet</td></tr>
+            <tr><td><code>haptics</code></td><td>Haptics</td><td>Vibrate phone</td></tr>
+            <tr><td><code>clipboard</code></td><td>Clipboard</td><td>Copy text</td></tr>
+            <tr><td><code>statusbar</code></td><td>Status Bar</td><td>Change status bar color</td></tr>
+            <tr><td><code>screenreader</code></td><td>Screen Reader</td><td>Speak text</td></tr>
+            <tr><td><code>textzoom</code></td><td>Text Zoom</td><td>Change text size</td></tr>
+            <tr><td><code>calendar</code></td><td>Calendar</td><td>Create calendar event</td></tr>
+            <tr><td><code>screenreader</code></td><td>Screen Reader</td><td>Speak text aloud</td></tr>
+            <tr><td><code>local-notifications</code></td><td>Local Notifications</td><td>Show local notification</td></tr>
+        </table>
+        <h3>📋 Copy Individual Plugin Actions</h3>
+
+        <div style="margin-bottom:0.75rem;padding:0.5rem;border:1px solid #e5e7eb;border-radius:0.5rem;">
+            <strong>Share</strong>
+            <button class="copy-btn" onclick="copyText('share-action')">📋 Copy</button>
+            <pre id="share-action" style="margin:0.25rem 0;">{"type":"share","payload":{"title":"Hello","text":"Check this","url":"https://example.com"}}</pre>
+        </div>
+
+        <div style="margin-bottom:0.75rem;padding:0.5rem;border:1px solid #e5e7eb;border-radius:0.5rem;">
+            <strong>Haptics</strong>
+            <button class="copy-btn" onclick="copyText('haptics-action')">📋 Copy</button>
+            <pre id="haptics-action" style="margin:0.25rem 0;">{"type":"haptics","payload":{"style":"impact"}}</pre>
+        </div>
+
+        <div style="margin-bottom:0.75rem;padding:0.5rem;border:1px solid #e5e7eb;border-radius:0.5rem;">
+            <strong>Clipboard</strong>
+            <button class="copy-btn" onclick="copyText('clipboard-action')">📋 Copy</button>
+            <pre id="clipboard-action" style="margin:0.25rem 0;">{"type":"clipboard","payload":{"text":"Copy this code"}}</pre>
+        </div>
+
+        <div style="margin-bottom:0.75rem;padding:0.5rem;border:1px solid #e5e7eb;border-radius:0.5rem;">
+            <strong>Camera</strong>
+            <button class="copy-btn" onclick="copyText('camera-action')">📋 Copy</button>
+            <pre id="camera-action" style="margin:0.25rem 0;">{"type":"camera","payload":{"mode":"photo"}}</pre>
+        </div>
+
+        <div style="margin-bottom:0.75rem;padding:0.5rem;border:1px solid #e5e7eb;border-radius:0.5rem;">
+            <strong>Geolocation</strong>
+            <button class="copy-btn" onclick="copyText('geolocation-action')">📋 Copy</button>
+            <pre id="geolocation-action" style="margin:0.25rem 0;">{"type":"geolocation","payload":{"accuracy":"high"}}</pre>
+        </div>
+
+        <div style="margin-bottom:0.75rem;padding:0.5rem;border:1px solid #e5e7eb;border-radius:0.5rem;">
+            <strong>Calendar</strong>
+            <button class="copy-btn" onclick="copyText('calendar-action')">📋 Copy</button>
+            <pre id="calendar-action" style="margin:0.25rem 0;">{"type":"calendar","payload":{"title":"Meeting","startDate":1700000000000,"endDate":1700003600000,"notes":"Discuss roadmap"}}</pre>
+        </div>
+
+        <div style="margin-bottom:0.75rem;padding:0.5rem;border:1px solid #e5e7eb;border-radius:0.5rem;">
+            <strong>Filesystem (Read)</strong>
+            <button class="copy-btn" onclick="copyText('filesystem-action')">📋 Copy</button>
+            <pre id="filesystem-action" style="margin:0.25rem 0;">{"type":"filesystem","payload":{"operation":"read","path":"data.json"}}</pre>
+        </div>
+
+        <div style="margin-bottom:0.75rem;padding:0.5rem;border:1px solid #e5e7eb;border-radius:0.5rem;">
+            <strong>Local Notification</strong>
+            <button class="copy-btn" onclick="copyText('local-notif-action')">📋 Copy</button>
+            <pre id="local-notif-action" style="margin:0.25rem 0;">{"type":"notification","payload":{"title":"Hello","body":"New message"}}</pre>
+        </div>
+
+        <p>The app sends action results back to:</p>
+        <pre>POST {backend_url}/api/app/action-result
+{ "action": "geolocation", "result": { "coords": ... } }</pre>
+
+        <p><strong>Foundational plugins</strong> (used internally by the bridge):</p>
+        <ul>
+            <li><code>device</code> — device ID</li>
+            <li><code>network</code> — online/offline detection</li>
+            <li><code>preferences</code> — local storage</li>
+            <li><code>splash-screen</code> — native splash</li>
+        </ul>
+
+        <h2>7. Push Notifications (FCM)</h2>
+        <p>To enable real-time push when the app is closed, you need a Firebase project and its <code>google-services.json</code> file.</p>
+        <p>Steps:</p>
+        <ol>
+            <li>Create a Firebase project at <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a></li>
+            <li>Add an Android app with the same package name as your generated app</li>
+            <li>Download <code>google-services.json</code></li>
+            <li>Upload it in the builder's Backend Bridge section</li>
+        </ol>
+        <p>The generated app will register with FCM and send its push token to your backend at:</p>
+        <pre>POST {backend_url}/api/app/push-token
+{ "token": "fcm_token_here" }</pre>
+        <p>Your backend can then use the token to send push notifications via FCM.</p>
+
+        <h2>8. Offline Behavior</h2>
+        <p>When offline, notifications are queued locally. When the app reconnects, the queue is flushed automatically.</p>
+
+        <h2>9. Example Backend (Node.js)</h2>
+        <pre>app.get('/api/app', (req, res) => {
+  res.json({
+    notifications: [
+      {
+        id: "msg_001",
+        title: "Hello",
+        body: "Welcome back!"
+      }
+    ]
+  });
+});</pre>
+
+        <h2>10. Example Backend (PHP)</h2>
+        <pre>&lt;?php
+header('Content-Type: application/json');
+echo json_encode([
+  'notifications' => [
+    [
+      'id' => 'msg_001',
+      'title' => 'Hello',
+      'body' => 'Welcome back!'
+    ]
+  ]
+]);
+?&gt;</pre>
+
+        <div class="note">
+            <strong>Tip:</strong> Keep the JSON simple. The app only needs <code>notifications</code> and optional <code>user</code> data.
+        </div>
+    </div>
+
+    <script>
+        function copyText(id) {
+            const text = document.getElementById(id).innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = event.target;
+                btn.textContent = '✅ Copied!';
+                setTimeout(() => { btn.textContent = '📋 Copy'; }, 1500);
+            });
+        }
+
+        document.getElementById('copyGuideBtn').addEventListener('click', async () => {
+            try {
+                const guideText = document.querySelector('.container').innerText;
+                await navigator.clipboard.writeText(guideText);
+                const btn = document.getElementById('copyGuideBtn');
+                btn.textContent = '✅ Copied!';
+                btn.style.background = '#10b981';
+                setTimeout(() => {
+                    btn.textContent = '📋 Copy Full Guide';
+                    btn.style.background = 'var(--primary)';
+                }, 2000);
+            } catch(e) {
+                alert('Failed to copy. Please select and copy manually.');
+            }
+        });
+    </script>
+</body>
+</html>

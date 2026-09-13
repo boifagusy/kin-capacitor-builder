@@ -1,0 +1,84 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_payload:
+        description: 'Build configuration JSON'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Debug APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Write build payload to file
+        env:
+          BUILD_PAYLOAD: ${{ github.event.inputs.build_payload }}
+        run: |
+          printf '%s' "$BUILD_PAYLOAD" > /tmp/build_payload.json
+          echo "Payload size: $(wc -c < /tmp/build_payload.json) bytes"
+
+      - name: Setup Go 1.27
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.27'
+
+      - name: Generate Capacitor project from payload
+        run: |
+          BUILD_PAYLOAD_FILE=/tmp/build_payload.json go run ./cmd/generate
+          echo "Generated files:"
+          find generated -type f | sort
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies and sync Capacitor
+        working-directory: generated
+        run: |
+          npm ci || npm install
+          npx cap sync android
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Build debug APK
+        working-directory: generated/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Verify APK exists
+        working-directory: generated/android
+        run: |
+          APK_PATH="app/build/outputs/apk/debug/app-debug.apk"
+          if [ -f "$APK_PATH" ]; then
+            echo "APK exists: $APK_PATH"
+            ls -la "$APK_PATH"
+            sha256sum "$APK_PATH"
+          else
+            echo "APK not found"
+            exit 1
+          fi
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: local-apk-builder-debug
+          path: generated/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error

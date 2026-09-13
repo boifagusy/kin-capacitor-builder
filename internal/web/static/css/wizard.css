@@ -1,0 +1,106 @@
+/* Additional wizard-specific styles */
+
+/* Step transition */
+.step-enter {
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* URL input with icon */
+.url-input-wrapper {
+    position: relative;
+}
+
+.url-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--gray-400);
+    pointer-events: none;
+}
+
+.url-input {
+    padding-left: 2.5rem;
+}
+
+/* Branding preview card */
+.preview-card {
+    background: var(--gray-50);
+    border: 2px dashed var(--gray-300);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-top: 1rem;
+    text-align: center;
+}
+
+.preview-logo {
+    width: 64px;
+    height: 64px;
+    background: white;
+    border-radius: 1rem;
+    box-shadow: var(--shadow);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 0.5rem;
+    font-size: 1.5rem;
+}
+
+.preview-name {
+    font-weight: 600;
+    color: var(--gray-700);
+}
+
+/* Color swatches */
+.color-swatches {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.color-swatch {
+    width: 32px;
+    height: 32px;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.color-swatch:hover {
+    transform: scale(1.1);
+}
+
+.color-swatch.selected {
+    border-color: var(--gray-700);
+    box-shadow: var(--shadow);
+}
+
+/* Mobile optimizations */
+@media (max-width: 480px) {
+    .form-actions {
+        flex-direction: column-reverse;
+        gap: 0.75rem;
+    }
+    
+    .btn {
+        width: 100%;
+    }
+    
+    .color-picker-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}

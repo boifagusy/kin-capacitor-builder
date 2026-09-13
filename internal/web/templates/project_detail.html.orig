@@ -1,0 +1,83 @@
+{{define "project_detail"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>{{.Project.AppName}}</title>
+    <script src="/static/vendor/htmx.min.js"></script>
+    <script src="/static/vendor/alpine.min.js"></script>
+    <link rel="stylesheet" href="/static/vendor/fontawesome/all.min.css">
+    <link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body>
+    <header class="app-header">
+        <div class="header-content">
+            <a href="/dashboard" class="back-btn">‹</a>
+            <div class="app-icon" style="background-color: {{.Project.PrimaryColor}};">
+                {{if .Project.AppName}}{{slice .Project.AppName 0 1}}{{else}}📱{{end}}
+            </div>
+            <span class="app-title">{{.Project.AppName}}</span>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <div class="wizard-container" style="max-width:500px;margin:0 auto;">
+            <div class="detail-card">
+                <div class="detail-row">
+                    <span class="detail-label">Website</span>
+                    <span class="detail-value">{{.Project.URL}}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Color</span>
+                    <span class="detail-value">
+                        <span class="color-dot" style="background-color: {{.Project.PrimaryColor}};"></span>
+                        {{.Project.PrimaryColor}}
+                    </span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Status</span>
+                    <span class="status-pill status-{{.Project.Status}}">{{.Project.Status}}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Version</span>
+                    <span class="detail-value">v{{.Project.Version}}</span>
+                </div>
+            </div>
+
+            <div class="detail-actions">
+                <a href="/wizard/2?project_id={{.Project.ID}}" class="btn btn-primary" style="width:100%;">Edit App</a>
+
+                <div class="build-buttons">
+                    <form action="/projects/{{.Project.ID}}/build" method="POST" style="width:100%;">
+                        <button type="submit" class="btn btn-primary" style="width:100%;">📦 Build APK</button>
+                    </form>
+                    {{if .LatestBuildID}}
+                    <a href="/projects/{{.LatestBuildID}}/download" class="btn btn-secondary" style="width:100%;">📥 Download APK</a>
+                    {{else}}
+                    <div style="text-align:center;color:#9ca3af;font-size:0.85rem;">No APK available yet</div>
+                    {{end}}
+                    <div class="build-status" style="text-align:center;padding:0.5rem;color:#6b7280;font-size:0.9rem;">
+                        Status will appear here
+                    </div>
+                    <button class="btn btn-secondary btn-disabled" disabled>
+                        <span class="build-icon">📦</span> Build APK
+                    </button>
+                    <button class="btn btn-secondary btn-disabled" disabled>
+                        <span class="build-icon">📦</span> Build AAB
+                    </button>
+                    <button class="btn btn-secondary btn-disabled" disabled>
+                        <span class="build-icon">📱</span> Build iOS
+                    </button>
+                </div>
+
+                <form action="/projects/{{.Project.ID}}/delete" method="POST" style="width:100%;"
+                      onsubmit="return confirm('Delete this app?');">
+                    <button type="submit" class="btn btn-danger" style="width:100%;">Delete App</button>
+                </form>
+            </div>
+        </div>
+    </main>
+</body>
+</html>
+{{end}}

@@ -1,0 +1,104 @@
+{{define "github_settings"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>GitHub Settings</title>
+    <script src="/static/vendor/htmx.min.js"></script>
+    <script src="/static/vendor/alpine.min.js" defer></script>
+    <link rel="stylesheet" href="/static/css/main.css">
+
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        @keyframes shimmer {
+            0% { background-position: -200px 0; }
+            100% { background-position: 200px 0; }
+        }
+        .detail-card {
+            animation: fadeIn 0.35s ease-out;
+        }
+        .form-group {
+            animation: fadeIn 0.3s ease-out;
+        }
+        .form-group:nth-child(1) { animation-delay: 0.05s; }
+        .form-group:nth-child(2) { animation-delay: 0.1s; }
+        .form-group:nth-child(3) { animation-delay: 0.15s; }
+        .btn-primary {
+            transition: all 0.2s;
+        }
+        .btn-primary:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+        .app-icon {
+            animation: pulse 2s ease-in-out infinite;
+        }
+        .spinner-inline {
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            display: inline-block;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+    </style>
+
+</head>
+<body>
+    <header class="app-header">
+        <div class="header-content">
+            <a href="/dashboard" class="back-btn">‹</a>
+            <div class="app-icon">🐙</div>
+            <span class="app-title">GitHub Settings</span>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <div class="dashboard-container" style="max-width:500px;margin:0 auto;">
+            <div class="detail-card">
+                <h2 style="font-size:1.1rem;margin-bottom:1rem;">Connect GitHub OAuth App</h2>
+                <p style="color:var(--gray-500);font-size:0.85rem;margin-bottom:1rem;">
+                    Paste your GitHub OAuth App credentials. These are stored securely on this device only.
+                </p>
+
+                <form action="/settings/github" method="POST">
+                    <div class="form-group">
+                        <label class="form-label">Client ID</label>
+                        <input type="text" name="client_id" value="{{.ClientID}}" class="form-input" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Client Secret</label>
+                        <input type="password" name="client_secret" value="{{.ClientSecret}}" class="form-input" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Callback URL</label>
+                        <input type="text" name="callback_url" value="{{if .CallbackURL}}{{.CallbackURL}}{{else}}http://127.0.0.1:8080/auth/github/callback{{end}}" class="form-input" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" style="width:100%;" onclick="this.innerHTML='<span class=spinner-inline></span>Saving...';">Save</button>
+                </form>
+            </div>
+        </div>
+    </main>
+</body>
+</html>
+{{end}}
