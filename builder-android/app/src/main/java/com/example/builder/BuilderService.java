@@ -8,7 +8,7 @@ import android.content.Intent;
 import android.os.Build;
 import android.os.IBinder;
 
-import mobile.androidlib.Androidlib;
+import androidlib.Androidlib;
 
 public class BuilderService extends Service {
     private static final String CHANNEL_ID = "builder_service";
