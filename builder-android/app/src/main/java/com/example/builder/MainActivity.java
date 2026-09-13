@@ -3,21 +3,37 @@ package com.example.builder;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
+import java.net.HttpURLConnection;
+import java.net.URL;
+
 public class MainActivity extends AppCompatActivity {
     private static final String BUILDER_URL = "http://127.0.0.1:18791/";
+    private static final String HEALTH_URL  = "http://127.0.0.1:18791/api/health";
     private WebView webView;
+    private TextView status;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        webView = findViewById(R.id.webview);
+        status  = findViewById(R.id.status);
+
+        WebSettings ws = webView.getSettings();
+        ws.setJavaScriptEnabled(true);
+        ws.setDomStorageEnabled(true);
+        webView.setWebViewClient(new WebViewClient());
 
         Intent svc = new Intent(this, BuilderService.class);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -26,12 +42,39 @@ public class MainActivity extends AppCompatActivity {
             startService(svc);
         }
 
-        webView = findViewById(R.id.webview);
-        WebSettings ws = webView.getSettings();
-        ws.setJavaScriptEnabled(true);
-        ws.setDomStorageEnabled(true);
-        webView.setWebViewClient(new WebViewClient());
-        webView.loadUrl(BUILDER_URL);
+        waitForServer(40);
+    }
+
+    private void waitForServer(final int attemptsLeft) {
+        if (attemptsLeft <= 0) {
+            status.setText("Server failed to start after 20s.");
+            return;
+        }
+        status.setText("Starting server... (" + attemptsLeft + ")");
+        new Thread(new Runnable() {
+            public void run() {
+                boolean ok = false;
+                try {
+                    HttpURLConnection c = (HttpURLConnection) new URL(HEALTH_URL).openConnection();
+                    c.setConnectTimeout(500);
+                    c.setReadTimeout(500);
+                    ok = (c.getResponseCode() == 200);
+                } catch (Throwable ignored) {}
+                final boolean success = ok;
+                new Handler(Looper.getMainLooper()).post(new Runnable() {
+                    public void run() {
+                        if (success) {
+                            status.setText("Server ready. Loading...");
+                            webView.loadUrl(BUILDER_URL);
+                        } else {
+                            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                                public void run() { waitForServer(attemptsLeft - 1); }
+                            }, 500);
+                        }
+                    }
+                });
+            }
+        }).start();
     }
 
     @Override

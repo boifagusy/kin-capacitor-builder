@@ -6,4 +6,14 @@
         android:id="@+id/webview"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
+    <TextView
+        android:id="@+id/status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:background="#80000000"
+        android:padding="8dp"
+        android:textColor="#ffffff"
+        android:textSize="14sp"
+        android:text="" />
 </FrameLayout>

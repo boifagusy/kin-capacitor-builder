@@ -16,19 +16,23 @@ public class BuilderService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        createNotificationChannel();
-        Notification n = new Notification.Builder(this, CHANNEL_ID)
-                .setContentTitle("Local APK Builder")
-                .setContentText("Builder server is running")
-                .setSmallIcon(android.R.drawable.stat_sys_download)
-                .build();
-        startForeground(NOTIFICATION_ID, n);
+        try {
+            createNotificationChannel();
+            Notification n = new Notification.Builder(this, CHANNEL_ID)
+                    .setContentTitle("Local APK Builder")
+                    .setContentText("Builder server is running")
+                    .setSmallIcon(android.R.drawable.stat_sys_download)
+                    .build();
+            startForeground(NOTIFICATION_ID, n);
+        } catch (Throwable t) {
+            t.printStackTrace();
+        }
 
         try {
             String dataDir = getFilesDir().getAbsolutePath();
             Androidlib.start(dataDir, 18791);
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (Throwable t) {
+            t.printStackTrace();
         }
         return START_STICKY;
     }
@@ -37,9 +41,7 @@ public class BuilderService extends Service {
     public void onDestroy() {
         try {
             Androidlib.stop();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        } catch (Throwable ignored) {}
         super.onDestroy();
     }
 
@@ -51,9 +53,7 @@ public class BuilderService extends Service {
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel ch = new NotificationChannel(
-                    CHANNEL_ID,
-                    "Builder",
-                    NotificationManager.IMPORTANCE_LOW);
+                    CHANNEL_ID, "Builder", NotificationManager.IMPORTANCE_LOW);
             NotificationManager nm = getSystemService(NotificationManager.class);
             if (nm != null) nm.createNotificationChannel(ch);
         }
