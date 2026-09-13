@@ -32,7 +32,7 @@ func (h *Handler) CreateProjectHandler(w http.ResponseWriter, r *http.Request) {
     }
 
     if err := database.SaveProject(p); err != nil {
-        http.Error(w, "Failed to create project", http.StatusInternalServerError)
+        http.Error(w, "Failed to create project: "+err.Error(), http.StatusInternalServerError)
         return
     }
 
