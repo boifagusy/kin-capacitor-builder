@@ -1,0 +1,102 @@
+{{define "welcome"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Welcome</title>
+    <script src="/static/vendor/alpine.min.js" defer></script>
+    <link rel="stylesheet" href="/static/css/main.css">
+    <style>
+        .welcome-wrap { padding: 1.25rem; max-width: 520px; margin: 0 auto; }
+        .welcome-step { background: white; border-radius: 12px; padding: 1rem; margin-bottom: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+        .welcome-step h3 { font-size: 0.95rem; margin: 0 0 0.5rem; color: #374151; }
+        .welcome-step p { font-size: 0.85rem; color: #6b7280; margin: 0 0 0.5rem; line-height: 1.5; }
+        .welcome-step a { color: #6366f1; }
+        .welcome-step code { background: #f3f4f6; padding: 0.15rem 0.35rem; border-radius: 4px; font-size: 0.8rem; }
+        .welcome-input { width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.9rem; font-family: monospace; box-sizing: border-box; }
+        .welcome-input:focus { outline: none; border-color: #6366f1; }
+        .welcome-btn { width: 100%; padding: 0.85rem; background: #6366f1; color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; margin-top: 0.75rem; cursor: pointer; }
+        .welcome-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .welcome-error { background: #fee2e2; color: #991b1b; padding: 0.75rem; border-radius: 8px; font-size: 0.85rem; margin-top: 0.75rem; }
+        .welcome-success { background: #dcfce7; color: #166534; padding: 0.75rem; border-radius: 8px; font-size: 0.85rem; margin-top: 0.75rem; }
+    </style>
+</head>
+<body>
+    <header class="app-header">
+        <div class="header-content">
+            <div class="app-icon">📱</div>
+            <span class="app-title">APK Builder</span>
+        </div>
+    </header>
+    <main class="main-container">
+        <div class="welcome-wrap" x-data="welcome()">
+            <div class="welcome-step">
+                <h3>👋 Welcome</h3>
+                <p>To build APKs, you need a GitHub Personal Access Token. It lets this app create repositories and dispatch builds on your behalf.</p>
+            </div>
+            <div class="welcome-step">
+                <h3>1. Create a token</h3>
+                <p>Open <a href="https://github.com/settings/tokens" target="_blank">github.com/settings/tokens</a> in your browser.</p>
+                <p>Use <strong>Tokens (classic)</strong> with scopes: <code>repo</code>, <code>workflow</code>.</p>
+            </div>
+            <div class="welcome-step">
+                <h3>2. Paste it here</h3>
+                <p>It looks like <code>ghp_xxxxxxxxxxxxxxxxxxxx</code></p>
+                <input type="password" class="welcome-input" x-model="token" placeholder="ghp_..." @keydown.enter="save()">
+                <template x-if="error">
+                    <div class="welcome-error" x-text="error"></div>
+                </template>
+                <template x-if="success">
+                    <div class="welcome-success" x-text="success"></div>
+                </template>
+                <button class="welcome-btn" @click="save()" :disabled="loading || !token.trim()">
+                    <span x-show="!loading">Validate & Continue</span>
+                    <span x-show="loading">Validating...</span>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function welcome() {
+            return {
+                token: "",
+                loading: false,
+                error: "",
+                success: "",
+                async save() {
+                    this.error = "";
+                    this.success = "";
+                    if (!this.token.trim()) {
+                        this.error = "Please paste a token.";
+                        return;
+                    }
+                    this.loading = true;
+                    try {
+                        const body = new URLSearchParams();
+                        body.append("pat_token", this.token.trim());
+                        const res = await fetch("/settings/github/pat/validate", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                            body: body.toString()
+                        });
+                        const data = await res.json();
+                        if (data.valid) {
+                            this.success = "Connected as " + data.username + ". Redirecting...";
+                            setTimeout(() => { window.location.href = "/dashboard"; }, 800);
+                        } else {
+                            this.error = data.error || "Invalid token";
+                        }
+                    } catch (e) {
+                        this.error = "Network error. Please try again.";
+                    } finally {
+                        this.loading = false;
+                    }
+                }
+            };
+        }
+    </script>
+</body>
+</html>
+{{end}}

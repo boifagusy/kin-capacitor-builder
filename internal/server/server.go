@@ -74,6 +74,8 @@ func New(cfg *config.Config) (*Server, error) {
 		http.Redirect(w, r, "/settings/github?saved=pat", http.StatusFound)
 	})
 
+	mux.HandleFunc("/settings/github/pat/validate", authHandler.PATValidateHandler)
+
 	mux.HandleFunc("/settings/github", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
@@ -87,6 +89,7 @@ func New(cfg *config.Config) (*Server, error) {
 
 	// Dashboard routes
 	mux.HandleFunc("/dashboard", dashHandler.DashboardHandler)
+	mux.HandleFunc("/welcome", handler.WelcomeHandler)
 
 	// Test route for Alpine debugging
 	mux.HandleFunc("/test-alpine", func(w http.ResponseWriter, r *http.Request) {

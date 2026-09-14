@@ -43,3 +43,13 @@ func UpdateAccessToken(token string) error {
     _, err := database.Exec("UPDATE github_connection SET access_token = ?, updated_at = CURRENT_TIMESTAMP WHERE id = (SELECT id FROM github_connection ORDER BY updated_at DESC LIMIT 1)", token)
     return err
 }
+
+// UpdateAccessTokenAndUsername updates both the token and username of the most recent connection.
+func UpdateAccessTokenAndUsername(token, username string) error {
+	db := GetDB()
+	_, err := db.Exec(
+		"UPDATE github_connection SET access_token = ?, github_username = ?, updated_at = CURRENT_TIMESTAMP WHERE id = (SELECT id FROM github_connection ORDER BY updated_at DESC LIMIT 1)",
+		token, username,
+	)
+	return err
+}

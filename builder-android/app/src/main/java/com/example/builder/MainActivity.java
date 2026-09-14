@@ -15,12 +15,19 @@ import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
 public class MainActivity extends AppCompatActivity {
-    private static final String BUILDER_URL = "http://127.0.0.1:18791/";
-    private static final String HEALTH_URL  = "http://127.0.0.1:18791/api/health";
+    private static final String BASE_URL    = "http://127.0.0.1:18791";
+    private static final String BUILDER_URL = BASE_URL + "/dashboard";
+    private static final String WELCOME_URL = BASE_URL + "/welcome";
+    private static final String HEALTH_URL  = BASE_URL + "/api/health";
+    private static final String STATUS_URL  = BASE_URL + "/api/github/status";
     private WebView webView;
     private LinearLayout overlay;
     private TextView loadingText;
@@ -78,14 +85,46 @@ public class MainActivity extends AppCompatActivity {
                 new Handler(Looper.getMainLooper()).post(new Runnable() {
                     public void run() {
                         if (success) {
-                            loadingText.setText("Loading dashboard...");
+                            loadingText.setText("Checking credentials...");
                             loadingHint.setText("");
-                            webView.loadUrl(BUILDER_URL);
+                            checkCredentialsAndLoad();
                         } else {
                             new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
                                 public void run() { waitForServer(attemptsLeft - 1); }
                             }, 500);
                         }
+                    }
+                });
+            }
+        }).start();
+    }
+
+    private void checkCredentialsAndLoad() {
+        new Thread(new Runnable() {
+            public void run() {
+                String target = BUILDER_URL;
+                try {
+                    HttpURLConnection c = (HttpURLConnection) new URL(STATUS_URL).openConnection();
+                    c.setConnectTimeout(1000);
+                    c.setReadTimeout(1000);
+                    if (c.getResponseCode() == 200) {
+                        BufferedReader r = new BufferedReader(new InputStreamReader(c.getInputStream()));
+                        StringBuilder sb = new StringBuilder();
+                        String line;
+                        while ((line = r.readLine()) != null) sb.append(line);
+                        r.close();
+                        JSONObject obj = new JSONObject(sb.toString());
+                        boolean connected = obj.optBoolean("connected", false);
+                        if (!connected) {
+                            target = WELCOME_URL;
+                        }
+                    }
+                } catch (Throwable ignored) {}
+                final String finalTarget = target;
+                new Handler(Looper.getMainLooper()).post(new Runnable() {
+                    public void run() {
+                        loadingText.setText("Loading...");
+                        webView.loadUrl(finalTarget);
                     }
                 });
             }
