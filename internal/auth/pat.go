@@ -71,16 +71,23 @@ func (h *Handler) PATValidateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Save with username
-	if err := database.UpdateAccessTokenAndUsername(token, user.Login); err != nil {
-		// If no existing row, insert fresh
-		conn := &database.GitHubConnection{
+	// Save — upsert semantics
+	conn, _ := database.GetGitHubConnection()
+	if conn == nil {
+		newConn := &database.GitHubConnection{
 			GitHubUsername: user.Login,
 			AccessToken:    token,
 		}
-		if err2 := database.SaveGitHubConnection(conn); err2 != nil {
+		if err := database.SaveGitHubConnection(newConn); err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]interface{}{
-				"valid": false, "error": "failed to save: " + err2.Error(),
+				"valid": false, "error": "failed to save: " + err.Error(),
+			})
+			return
+		}
+	} else {
+		if err := database.UpdateAccessTokenAndUsername(token, user.Login); err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]interface{}{
+				"valid": false, "error": "failed to update: " + err.Error(),
 			})
 			return
 		}
