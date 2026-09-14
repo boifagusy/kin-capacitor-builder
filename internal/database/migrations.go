@@ -305,7 +305,7 @@ func migrateV5(db *sql.DB) error {
     }
     for _, stmt := range alterations {
         if _, err := db.Exec(stmt); err != nil {
-            // Ignore 'duplicate column name' when a DB already has it
+            if !strings.Contains(err.Error(), "duplicate column") {
                 return err
             }
         }
