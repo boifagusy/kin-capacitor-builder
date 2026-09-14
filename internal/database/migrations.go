@@ -1,6 +1,9 @@
 package database
 
-import "database/sql"
+import (
+	"database/sql"
+	"strings"
+)
 
 func migrate(db *sql.DB) error {
     // Drop existing tables (no production data)
@@ -17,6 +20,13 @@ func migrate(db *sql.DB) error {
         features_config TEXT NOT NULL DEFAULT '[]',
         splash_config TEXT NOT NULL DEFAULT '{}',
         onboarding_config TEXT NOT NULL DEFAULT '{}',
+        bridge_config TEXT NOT NULL DEFAULT '{}',
+        google_services TEXT NOT NULL DEFAULT '',
+        source_type TEXT NOT NULL DEFAULT 'url',
+        source_path TEXT NOT NULL DEFAULT '',
+        project_type TEXT NOT NULL DEFAULT 'static',
+        original_zip_name TEXT NOT NULL DEFAULT '',
+        runtime_type TEXT NOT NULL DEFAULT 'none',
         current_step INTEGER NOT NULL DEFAULT 1,
         status TEXT NOT NULL DEFAULT 'draft',
         version TEXT NOT NULL DEFAULT '1.0.0',
@@ -80,8 +90,10 @@ func migrate(db *sql.DB) error {
     CREATE INDEX IF NOT EXISTS idx_build_project_id ON build(project_id);
     `
     
-    _, err := db.Exec(buildQuery)
-    return err
+    if _, err := db.Exec(buildQuery); err != nil {
+        return err
+    }
+    return migrateV5(db)
 }
 
 // SaveProject saves or updates a project
@@ -280,14 +292,23 @@ func LoadProject() (*Project, error) {
 }
 
 
-// Migration v4: Add source fields for upload support
-func migrateV4(db *sql.DB) error {
-    _, err := db.Exec(`
-        ALTER TABLE project ADD COLUMN source_type TEXT NOT NULL DEFAULT 'url';
-        ALTER TABLE project ADD COLUMN source_path TEXT NOT NULL DEFAULT '';
-        ALTER TABLE project ADD COLUMN project_type TEXT NOT NULL DEFAULT 'static';
-        ALTER TABLE project ADD COLUMN original_zip_name TEXT NOT NULL DEFAULT '';
-        ALTER TABLE project ADD COLUMN runtime_type TEXT NOT NULL DEFAULT 'none';
-    `)
-    return err
+// Migration v5: Ensure all project columns exist (idempotent)
+func migrateV5(db *sql.DB) error {
+    alterations := []string{
+        "ALTER TABLE project ADD COLUMN bridge_config TEXT NOT NULL DEFAULT '{}'",
+        "ALTER TABLE project ADD COLUMN google_services TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE project ADD COLUMN source_type TEXT NOT NULL DEFAULT 'url'",
+        "ALTER TABLE project ADD COLUMN source_path TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE project ADD COLUMN project_type TEXT NOT NULL DEFAULT 'static'",
+        "ALTER TABLE project ADD COLUMN original_zip_name TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE project ADD COLUMN runtime_type TEXT NOT NULL DEFAULT 'none'",
+    }
+    for _, stmt := range alterations {
+        if _, err := db.Exec(stmt); err != nil {
+            // Ignore 'duplicate column name' when a DB already has it
+                return err
+            }
+        }
+    }
+    return nil
 }
