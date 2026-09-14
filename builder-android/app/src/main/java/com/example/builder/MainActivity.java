@@ -46,7 +46,7 @@ public class MainActivity extends AppCompatActivity {
         ViewCompat.setOnApplyWindowInsetsListener(webView, new OnApplyWindowInsetsListener() {
             @Override
             public WindowInsetsCompat onApplyWindowInsets(View v, WindowInsetsCompat insets) {
-                WindowInsetsCompat.Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+                androidx.core.graphics.Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
                 v.setPadding(bars.left, bars.top, bars.right, bars.bottom);
                 return insets;
             }
